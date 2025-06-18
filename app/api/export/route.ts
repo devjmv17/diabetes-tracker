@@ -13,7 +13,10 @@ const momentos: MomentoDia[] = [
 
 export async function GET() {
   try {
+    console.log("Iniciando exportación...")
+
     const registros = await obtenerTodosLosRegistros()
+    console.log(`Obtenidos ${registros.length} registros`)
 
     if (registros.length === 0) {
       return NextResponse.json({ error: "No hay registros para exportar" }, { status: 404 })
@@ -23,21 +26,21 @@ export async function GET() {
     const headers = ["Fecha", "Registro", ...momentos, "Insulina (UI)"]
 
     // Agrupar registros por fecha
-    const registrosPorFecha = registros.reduce(
-      (acc, registro) => {
-        const fecha = registro.fecha
-        if (!acc[fecha]) {
-          acc[fecha] = {}
-        }
-        acc[fecha][registro.momento] = {
-          valor: registro.valor,
-          hora: registro.hora,
-          insulina: registro.insulina,
-        }
-        return acc
-      },
-      {} as Record<string, Record<string, { valor: number; hora: string; insulina: number }>>,
-    )
+    const registrosPorFecha: Record<string, Record<string, { valor: number; hora: string; insulina: number }>> = {}
+
+    registros.forEach((registro) => {
+      const fecha = registro.fecha
+      if (!registrosPorFecha[fecha]) {
+        registrosPorFecha[fecha] = {}
+      }
+      registrosPorFecha[fecha][registro.momento] = {
+        valor: registro.valor,
+        hora: registro.hora,
+        insulina: registro.insulina,
+      }
+    })
+
+    console.log("Registros agrupados por fecha:", Object.keys(registrosPorFecha).length)
 
     // Crear filas CSV
     const rows = [headers.join(",")]
@@ -45,33 +48,55 @@ export async function GET() {
     Object.entries(registrosPorFecha).forEach(([fecha, momentosData]) => {
       const row = [fecha]
 
-      // Columna de registro (valor principal del día)
-      const primerMomento = Object.values(momentosData)[0]
-      row.push(primerMomento ? primerMomento.valor.toString() : "")
+      // Columna de registro (primer valor del día o el más alto)
+      const valores = Object.values(momentosData)
+      const valorPrincipal = valores.length > 0 ? valores[0].valor : ""
+      row.push(valorPrincipal.toString())
 
       // Columnas por momento del día (solo fecha y hora)
       momentos.forEach((momento) => {
         const data = momentosData[momento]
-        row.push(data ? `${fecha} ${data.hora}` : "")
+        if (data) {
+          row.push(`"${fecha} ${data.hora}"`)
+        } else {
+          row.push("")
+        }
       })
 
-      // Columna de insulina
-      const insulinaTotal = Object.values(momentosData).reduce((sum, data) => sum + data.insulina, 0)
+      // Columna de insulina (suma total del día)
+      const insulinaTotal = valores.reduce((sum, data) => sum + (data.insulina || 0), 0)
       row.push(insulinaTotal.toString())
 
       rows.push(row.join(","))
     })
 
     const csvContent = rows.join("\n")
+    console.log("CSV generado exitosamente")
 
-    return new NextResponse(csvContent, {
+    // Crear respuesta con headers correctos
+    const response = new NextResponse(csvContent, {
+      status: 200,
       headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename=registros_glucosa_${new Date().toISOString().split("T")[0]}.csv`,
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="registros_glucosa_${new Date().toISOString().split("T")[0]}.csv"`,
+        "Cache-Control": "no-cache",
       },
     })
+
+    return response
   } catch (error) {
-    console.error("Error al exportar:", error)
-    return NextResponse.json({ error: "Error al exportar datos" }, { status: 500 })
+    console.error("Error detallado en exportación:", error)
+
+    // Devolver error más específico
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido en la exportación"
+
+    return NextResponse.json(
+      {
+        error: "Error al exportar datos",
+        details: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    )
   }
 }

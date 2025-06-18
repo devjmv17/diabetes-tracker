@@ -1,15 +1,21 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import type { RegistroGlucosa } from "../types/registro"
-import { Clock, Droplets, Syringe } from "lucide-react"
+import EditarRegistro from "./editar-registro"
+import { Clock, Droplets, Syringe, Edit, MoreHorizontal } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface RegistroListProps {
   registros: RegistroGlucosa[]
 }
 
 export default function RegistroList({ registros }: RegistroListProps) {
+  const [registroEditando, setRegistroEditando] = useState<string | null>(null)
+
   const getColorByValue = (valor: number) => {
     if (valor < 70) return "bg-red-100 text-red-800 border-red-200"
     if (valor > 180) return "bg-orange-100 text-orange-800 border-orange-200"
@@ -37,44 +43,65 @@ export default function RegistroList({ registros }: RegistroListProps) {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Últimos Registros</h2>
       {registros.map((registro) => (
-        <Card key={registro.id} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">
-                  {registro.fecha} - {registro.hora}
-                </span>
-              </div>
-              <Badge className={getColorByValue(registro.valor)}>{getStatusText(registro.valor)}</Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2">
-                <Droplets className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Glucosa</p>
-                  <p className="text-2xl font-bold text-blue-800">
-                    {registro.valor} <span className="text-sm font-normal">mg/dL</span>
-                  </p>
+        <div key={registro.id}>
+          {registroEditando === registro.id ? (
+            <EditarRegistro registro={registro} onCancelar={() => setRegistroEditando(null)} />
+          ) : (
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      {registro.fecha} - {registro.hora}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getColorByValue(registro.valor)}>{getStatusText(registro.valor)}</Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setRegistroEditando(registro.id)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar registro
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <p className="text-sm text-gray-600">Momento</p>
-                <p className="font-semibold text-gray-800">{registro.momento}</p>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Glucosa</p>
+                      <p className="text-2xl font-bold text-blue-800">
+                        {registro.valor} <span className="text-sm font-normal">mg/dL</span>
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <Syringe className="w-4 h-4 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Insulina</p>
-                  <p className="font-semibold text-purple-800">{registro.insulina} UI</p>
+                  <div>
+                    <p className="text-sm text-gray-600">Momento</p>
+                    <p className="font-semibold text-gray-800">{registro.momento}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Syringe className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Insulina</p>
+                      <p className="font-semibold text-purple-800">{registro.insulina} UI</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       ))}
     </div>
   )
