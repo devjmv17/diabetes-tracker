@@ -18,13 +18,13 @@ export default function RegistroList({ registros }: RegistroListProps) {
 
   const getColorByValue = (valor: number) => {
     if (valor < 70) return "bg-red-100 text-red-800 border-red-200"
-    if (valor > 180) return "bg-orange-100 text-orange-800 border-orange-200"
+    if (valor >= 140) return "bg-orange-100 text-orange-800 border-orange-200"
     return "bg-green-100 text-green-800 border-green-200"
   }
 
   const getStatusText = (valor: number) => {
     if (valor < 70) return "Bajo"
-    if (valor > 180) return "Alto"
+    if (valor >= 140) return "Alto"
     return "Normal"
   }
 
@@ -79,7 +79,15 @@ export default function RegistroList({ registros }: RegistroListProps) {
                     <Droplets className="w-5 h-5 text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-600">Glucosa</p>
-                      <p className="text-2xl font-bold text-blue-800">
+                      <p
+                        className={`text-2xl font-bold ${
+                          registro.valor >= 140
+                            ? "text-orange-700"
+                            : registro.valor < 70
+                              ? "text-red-700"
+                              : "text-blue-800"
+                        }`}
+                      >
                         {registro.valor} <span className="text-sm font-normal">mg/dL</span>
                       </p>
                     </div>
@@ -98,6 +106,22 @@ export default function RegistroList({ registros }: RegistroListProps) {
                     </div>
                   </div>
                 </div>
+
+                {/* Indicador visual adicional para valores altos */}
+                {registro.valor >= 140 && (
+                  <div className="mt-3 p-2 bg-orange-50 border-l-4 border-orange-400 rounded">
+                    <p className="text-sm text-orange-700">
+                      ⚠️ Valor elevado - Considera consultar con tu médico si persiste
+                    </p>
+                  </div>
+                )}
+
+                {/* Indicador visual para valores bajos */}
+                {registro.valor < 70 && (
+                  <div className="mt-3 p-2 bg-red-50 border-l-4 border-red-400 rounded">
+                    <p className="text-sm text-red-700">🚨 Hipoglucemia - Toma acción inmediata si es necesario</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

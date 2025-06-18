@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import RegistroForm from "./components/registro-form"
 import RegistroList from "./components/registro-list"
-import { obtenerRegistrosAction, obtenerEstadisticasAction } from "./actions/registros"
+import GraficoAyunas from "./components/grafico-ayunas"
+import { obtenerRegistrosAction, obtenerEstadisticasAction, obtenerRegistrosAyunasAction } from "./actions/registros"
 import { Download, Activity, TrendingUp, Calendar } from "lucide-react"
 
 async function ExportButton() {
@@ -43,10 +44,11 @@ async function ExportButton() {
 export default async function Home() {
   const registros = await obtenerRegistrosAction()
   const estadisticas = await obtenerEstadisticasAction()
+  const registrosAyunas = await obtenerRegistrosAyunasAction()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -92,6 +94,13 @@ export default async function Home() {
         {estadisticas.totalRegistros > 0 && (
           <div className="mb-6">
             <ExportButton />
+          </div>
+        )}
+
+        {/* Gráfico de tendencia de ayunas */}
+        {registrosAyunas.length > 0 && (
+          <div className="mb-8">
+            <GraficoAyunas registros={registrosAyunas} />
           </div>
         )}
 

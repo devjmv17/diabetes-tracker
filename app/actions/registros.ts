@@ -10,6 +10,7 @@ import {
   obtenerRegistroPorId,
   actualizarRegistro,
   eliminarRegistro,
+  obtenerRegistrosAyunas,
 } from "../lib/database"
 import type { MomentoDia } from "../types/registro"
 
@@ -109,4 +110,8 @@ export async function obtenerUltimaInsulinaAction() {
 
 export async function obtenerRegistroPorIdAction(id: string) {
   return await obtenerRegistroPorId(id)
+}
+
+export async function obtenerRegistrosAyunasAction() {
+  return await obtenerRegistrosAyunas(30)
 }

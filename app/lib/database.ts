@@ -71,6 +71,35 @@ export async function obtenerTodosLosRegistros(): Promise<RegistroGlucosa[]> {
   }
 }
 
+export async function obtenerRegistrosAyunas(limite = 30): Promise<RegistroGlucosa[]> {
+  try {
+    console.log("Obteniendo registros de ayunas...")
+
+    const rows = await sql`
+      SELECT id, fecha, hora, valor, momento, insulina, timestamp
+      FROM registros_glucosa 
+      WHERE momento = 'Ayunas'
+      ORDER BY fecha ASC, timestamp ASC
+      LIMIT ${limite}
+    `
+
+    console.log(`Obtenidos ${rows.length} registros de ayunas`)
+
+    return rows.map((row) => ({
+      id: row.id.toString(),
+      fecha: new Date(row.fecha).toLocaleDateString("es-ES"),
+      hora: row.hora.slice(0, 5),
+      valor: Number(row.valor),
+      momento: row.momento as MomentoDia,
+      insulina: Number(row.insulina || 0),
+      timestamp: Number(row.timestamp),
+    }))
+  } catch (error) {
+    console.error("Error al obtener registros de ayunas:", error)
+    return []
+  }
+}
+
 export async function obtenerRegistroPorId(id: string): Promise<RegistroGlucosa | null> {
   try {
     const rows = await sql`
