@@ -1,9 +1,19 @@
 import { neon } from "@neondatabase/serverless"
 import type { RegistroGlucosa, MomentoDia } from "../types/registro"
 
-const sql = neon(process.env.DATABASE_URL!)
+// Verificar que la variable de entorno existe
+if (!process.env.DATABASE_URL) {
+  console.warn("DATABASE_URL no está configurada")
+}
+
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
 
 export async function obtenerUltimosRegistros(limite = 5): Promise<RegistroGlucosa[]> {
+  if (!sql) {
+    console.warn("Base de datos no configurada, devolviendo array vacío")
+    return []
+  }
+
   try {
     const rows = await sql`
       SELECT id, fecha, hora, valor, momento, insulina, timestamp
@@ -28,6 +38,11 @@ export async function obtenerUltimosRegistros(limite = 5): Promise<RegistroGluco
 }
 
 export async function obtenerTodosLosRegistros(): Promise<RegistroGlucosa[]> {
+  if (!sql) {
+    console.warn("Base de datos no configurada, devolviendo array vacío")
+    return []
+  }
+
   try {
     console.log("Ejecutando consulta para obtener todos los registros...")
 
@@ -67,11 +82,16 @@ export async function obtenerTodosLosRegistros(): Promise<RegistroGlucosa[]> {
       return []
     }
 
-    throw error
+    return []
   }
 }
 
 export async function obtenerRegistrosAyunas(limite = 30): Promise<RegistroGlucosa[]> {
+  if (!sql) {
+    console.warn("Base de datos no configurada, devolviendo array vacío")
+    return []
+  }
+
   try {
     console.log("Obteniendo registros de ayunas...")
 
@@ -101,6 +121,11 @@ export async function obtenerRegistrosAyunas(limite = 30): Promise<RegistroGluco
 }
 
 export async function obtenerRegistroPorId(id: string): Promise<RegistroGlucosa | null> {
+  if (!sql) {
+    console.warn("Base de datos no configurada")
+    return null
+  }
+
   try {
     const rows = await sql`
       SELECT id, fecha, hora, valor, momento, insulina, timestamp
@@ -127,6 +152,11 @@ export async function obtenerRegistroPorId(id: string): Promise<RegistroGlucosa 
 }
 
 export async function crearRegistro(registro: Omit<RegistroGlucosa, "id">): Promise<RegistroGlucosa | null> {
+  if (!sql) {
+    console.warn("Base de datos no configurada")
+    return null
+  }
+
   try {
     const fechaObj = new Date()
     const fecha = fechaObj.toISOString().split("T")[0] // YYYY-MM-DD
@@ -158,6 +188,11 @@ export async function actualizarRegistro(
   id: string,
   registro: Omit<RegistroGlucosa, "id">,
 ): Promise<RegistroGlucosa | null> {
+  if (!sql) {
+    console.warn("Base de datos no configurada")
+    return null
+  }
+
   try {
     // Convertir fecha del formato español al formato ISO
     const [dia, mes, año] = registro.fecha.split("/")
@@ -195,6 +230,11 @@ export async function actualizarRegistro(
 }
 
 export async function eliminarRegistro(id: string): Promise<boolean> {
+  if (!sql) {
+    console.warn("Base de datos no configurada")
+    return false
+  }
+
   try {
     const result = await sql`
       DELETE FROM registros_glucosa 
@@ -209,6 +249,15 @@ export async function eliminarRegistro(id: string): Promise<boolean> {
 }
 
 export async function obtenerEstadisticas() {
+  if (!sql) {
+    console.warn("Base de datos no configurada, devolviendo estadísticas vacías")
+    return {
+      promedio7Dias: 0,
+      totalRegistros: 0,
+      ultimoValor: 0,
+    }
+  }
+
   try {
     const promedioRows = await sql`
       SELECT AVG(valor) as promedio
@@ -244,6 +293,11 @@ export async function obtenerEstadisticas() {
 }
 
 export async function obtenerUltimaInsulina(): Promise<number> {
+  if (!sql) {
+    console.warn("Base de datos no configurada")
+    return 0
+  }
+
   try {
     const rows = await sql`
       SELECT insulina
