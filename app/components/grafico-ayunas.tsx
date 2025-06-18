@@ -3,13 +3,13 @@
 import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { RegistroGlucosa } from "../types/registro"
-import { Sun } from "lucide-react"
+import { Activity } from "lucide-react"
 
-interface GraficoAyunasProps {
+interface GraficoTodosRegistrosProps {
   registros: RegistroGlucosa[]
 }
 
-export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
+export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistrosProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -134,11 +134,23 @@ export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
       const x = padding + (index / Math.max(registros.length - 1, 1)) * width
       const y = padding + height - ((registro.valor - minValor) / rangoValor) * height
 
-      // Color del punto según el valor (rangos para diabéticos)
-      let colorPunto = "#34d399" // Verde (normal: 70-140)
+      // Color del punto según el momento del día y valor
+      let colorPunto = "#34d399" // Verde por defecto (normal: 70-140)
       if (registro.valor < 70) colorPunto = "#ef4444" // Rojo (bajo: <70)
       if (registro.valor >= 140) colorPunto = "#f97316" // Naranja (alto: ≥140)
       if (registro.valor >= 200) colorPunto = "#dc2626" // Rojo intenso (muy alto: ≥200)
+
+      // Agregar variación por momento del día
+      const momentoColors: Record<string, string> = {
+        Ayunas: colorPunto,
+        "2h Después desayuno": colorPunto === "#34d399" ? "#10b981" : colorPunto,
+        "Antes comida": colorPunto === "#34d399" ? "#059669" : colorPunto,
+        "2h Después comida": colorPunto === "#34d399" ? "#047857" : colorPunto,
+        "Antes cena": colorPunto === "#34d399" ? "#065f46" : colorPunto,
+        "2h Después cena": colorPunto === "#34d399" ? "#064e3b" : colorPunto,
+      }
+
+      colorPunto = momentoColors[registro.momento] || colorPunto
 
       // Dibujar punto
       ctx.fillStyle = colorPunto
@@ -183,13 +195,13 @@ export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sun className="w-5 h-5 text-yellow-600" />
-            Tendencia de Glucosa en Ayunas
+            <Activity className="w-5 h-5 text-blue-600" />
+            Tendencia de Todos los Registros de Glucosa
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-8">
-          <p className="text-gray-500">No hay registros de ayunas para mostrar el gráfico.</p>
-          <p className="text-sm text-gray-400 mt-2">Agrega algunos registros de "Ayunas" para ver la tendencia.</p>
+          <p className="text-gray-500">No hay registros para mostrar el gráfico.</p>
+          <p className="text-sm text-gray-400 mt-2">Agrega algunos registros para ver la tendencia.</p>
         </CardContent>
       </Card>
     )
@@ -211,8 +223,8 @@ export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sun className="w-5 h-5 text-yellow-600" />
-            Tendencia de Glucosa en Ayunas
+            <Activity className="w-5 h-5 text-blue-600" />
+            Tendencia de Todos los Registros de Glucosa
           </div>
           <div className="flex items-center gap-4 text-sm">
             <div className="text-center">
@@ -256,6 +268,34 @@ export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
             </div>
           </div>
 
+          {/* Leyenda de momentos del día */}
+          <div className="flex justify-center gap-2 mt-2 text-xs flex-wrap">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+              <span>Ayunas</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>2h Desp. desayuno</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Antes comida</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-300 rounded-full"></div>
+              <span>2h Desp. comida</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-200 rounded-full"></div>
+              <span>Antes cena</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-100 rounded-full"></div>
+              <span>2h Desp. cena</span>
+            </div>
+          </div>
+
           {/* Estadísticas por rango */}
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="text-center p-3 bg-red-50 rounded-lg">
@@ -278,12 +318,12 @@ export default function GraficoAyunas({ registros }: GraficoAyunasProps) {
           {/* Información adicional actualizada */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Últimos {registros.length} registros de ayunas</strong> ordenados por fecha.
-              {registros.length >= 30 && " Mostrando los últimos 30 registros."}
+              <strong>Todos los registros ({registros.length})</strong> ordenados por fecha.
+              {registros.length >= 50 && " Mostrando los últimos 50 registros."}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              <strong>Rangos para diabéticos:</strong> Bajo (&lt;70), Normal (70-139), Alto (≥140 mg/dL). La línea
-              punteada naranja marca el límite de 140 mg/dL.
+              <strong>Rangos para diabéticos:</strong> Bajo (&lt;70), Normal (70-139), Alto (≥140 mg/dL). Incluye todos
+              los momentos del día para una vista completa.
             </p>
           </div>
         </div>

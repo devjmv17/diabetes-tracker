@@ -120,6 +120,39 @@ export async function obtenerRegistrosAyunas(limite = 30): Promise<RegistroGluco
   }
 }
 
+export async function obtenerTodosRegistrosLimitados(limite = 50): Promise<RegistroGlucosa[]> {
+  if (!sql) {
+    console.warn("Base de datos no configurada, devolviendo array vacío")
+    return []
+  }
+
+  try {
+    console.log(`Obteniendo últimos ${limite} registros...`)
+
+    const rows = await sql`
+      SELECT id, fecha, hora, valor, momento, insulina, timestamp
+      FROM registros_glucosa 
+      ORDER BY timestamp ASC
+      LIMIT ${limite}
+    `
+
+    console.log(`Obtenidos ${rows.length} registros`)
+
+    return rows.map((row) => ({
+      id: row.id.toString(),
+      fecha: new Date(row.fecha).toLocaleDateString("es-ES"),
+      hora: row.hora.slice(0, 5),
+      valor: Number(row.valor),
+      momento: row.momento as MomentoDia,
+      insulina: Number(row.insulina || 0),
+      timestamp: Number(row.timestamp),
+    }))
+  } catch (error) {
+    console.error("Error al obtener registros limitados:", error)
+    return []
+  }
+}
+
 export async function obtenerRegistroPorId(id: string): Promise<RegistroGlucosa | null> {
   if (!sql) {
     console.warn("Base de datos no configurada")
@@ -158,13 +191,17 @@ export async function crearRegistro(registro: Omit<RegistroGlucosa, "id">): Prom
   }
 
   try {
-    const fechaObj = new Date()
-    const fecha = fechaObj.toISOString().split("T")[0] // YYYY-MM-DD
+    // CORREGIDO: Usar la fecha del registro, no la fecha actual
+    // Convertir fecha del formato español (DD/MM/YYYY) al formato ISO (YYYY-MM-DD)
+    const [dia, mes, año] = registro.fecha.split("/")
+    const fechaISO = `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`
     const hora = registro.hora + ":00" // HH:MM:SS
+
+    console.log("Creando registro con fecha:", fechaISO, "y hora:", hora)
 
     const rows = await sql`
       INSERT INTO registros_glucosa (fecha, hora, valor, momento, insulina, timestamp)
-      VALUES (${fecha}, ${hora}, ${registro.valor}, ${registro.momento}, ${registro.insulina}, ${registro.timestamp})
+      VALUES (${fechaISO}, ${hora}, ${registro.valor}, ${registro.momento}, ${registro.insulina}, ${registro.timestamp})
       RETURNING id, fecha, hora, valor, momento, insulina, timestamp
     `
 

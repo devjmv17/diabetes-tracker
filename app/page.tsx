@@ -1,15 +1,20 @@
 import { Card, CardContent } from "@/components/ui/card"
 import RegistroForm from "./components/registro-form"
 import RegistroList from "./components/registro-list"
-import GraficoAyunas from "./components/grafico-ayunas"
+import GraficoTodosRegistros from "./components/grafico-ayunas"
 import ExportButton from "./components/export-button"
-import { obtenerRegistrosAction, obtenerEstadisticasAction, obtenerRegistrosAyunasAction } from "./actions/registros"
+import {
+  obtenerRegistrosAction,
+  obtenerEstadisticasAction,
+  obtenerTodosRegistrosLimitadosAction,
+} from "./actions/registros"
 import { Activity, TrendingUp, Calendar } from "lucide-react"
+import BotonTablaRegistros from "./components/boton-tabla-registros"
 
 export default async function Home() {
   const registros = await obtenerRegistrosAction()
   const estadisticas = await obtenerEstadisticasAction()
-  const registrosAyunas = await obtenerRegistrosAyunasAction()
+  const todosLosRegistros = await obtenerTodosRegistrosLimitadosAction(50)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -55,17 +60,18 @@ export default async function Home() {
         {/* Formulario para agregar registro */}
         <RegistroForm />
 
-        {/* Botón de exportar */}
+        {/* Botones de exportar y tabla */}
         {estadisticas.totalRegistros > 0 && (
-          <div className="mb-6">
+          <div className="mb-6 flex flex-col md:flex-row gap-4">
             <ExportButton />
+            <BotonTablaRegistros />
           </div>
         )}
 
-        {/* Gráfico de tendencia de ayunas */}
-        {registrosAyunas.length > 0 && (
+        {/* Gráfico de tendencia de todos los registros */}
+        {todosLosRegistros.length > 0 && (
           <div className="mb-8">
-            <GraficoAyunas registros={registrosAyunas} />
+            <GraficoTodosRegistros registros={todosLosRegistros} />
           </div>
         )}
 
