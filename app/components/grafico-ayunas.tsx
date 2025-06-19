@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import type { RegistroGlucosa, MomentoDia } from "../types/registro"
-import { Activity, Download, ImageIcon } from "lucide-react"
+import { Activity, Download, ImageIcon, Eye, EyeOff } from "lucide-react"
 
 interface GraficoTodosRegistrosProps {
   registros: RegistroGlucosa[]
@@ -13,6 +13,16 @@ interface GraficoTodosRegistrosProps {
 export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistrosProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [exportando, setExportando] = useState(false)
+
+  // Estado para controlar qué líneas están visibles
+  const [momentosVisibles, setMomentosVisibles] = useState<Record<MomentoDia, boolean>>({
+    Ayunas: true,
+    "2h Después desayuno": true,
+    "Antes comida": true,
+    "2h Después comida": true,
+    "Antes cena": true,
+    "2h Después cena": true,
+  })
 
   // Colores para cada momento del día
   const coloresMomentos: Record<MomentoDia, string> = {
@@ -24,8 +34,32 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     "2h Después cena": "#8b5cf6", // Púrpura
   }
 
+  // Función para alternar visibilidad de un momento
+  const toggleMomento = (momento: MomentoDia) => {
+    setMomentosVisibles((prev) => ({
+      ...prev,
+      [momento]: !prev[momento],
+    }))
+  }
+
+  // Función para mostrar/ocultar todos
+  const toggleTodos = (mostrar: boolean) => {
+    const nuevoEstado: Record<MomentoDia, boolean> = {
+      Ayunas: mostrar,
+      "2h Después desayuno": mostrar,
+      "Antes comida": mostrar,
+      "2h Después comida": mostrar,
+      "Antes cena": mostrar,
+      "2h Después cena": mostrar,
+    }
+    setMomentosVisibles(nuevoEstado)
+  }
+
+  // Filtrar registros según visibilidad
+  const registrosFiltrados = registros.filter((registro) => momentosVisibles[registro.momento])
+
   useEffect(() => {
-    if (!canvasRef.current || registros.length === 0) return
+    if (!canvasRef.current || registrosFiltrados.length === 0) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
@@ -50,7 +84,8 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     ctx.font = "12px system-ui"
     ctx.textAlign = "center"
 
-    // Obtener valores min y max
+    // Obtener valores min y max de TODOS los registros (no solo los filtrados)
+    // para mantener la escala consistente
     const valores = registros.map((r) => r.valor)
     const minValor = Math.min(...valores, 70)
     const maxValor = Math.max(...valores, 200)
@@ -117,7 +152,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     ctx.stroke()
     ctx.setLineDash([])
 
-    // Agrupar registros por momento
+    // Agrupar registros filtrados por momento
     const registrosPorMomento: Record<MomentoDia, RegistroGlucosa[]> = {
       Ayunas: [],
       "2h Después desayuno": [],
@@ -127,7 +162,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       "2h Después cena": [],
     }
 
-    registros.forEach((registro) => {
+    registrosFiltrados.forEach((registro) => {
       registrosPorMomento[registro.momento].push(registro)
     })
 
@@ -136,19 +171,19 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       registrosPorMomento[momento as MomentoDia].sort((a, b) => a.timestamp - b.timestamp)
     })
 
-    // Dibujar líneas para cada momento
+    // Usar el rango de tiempo de TODOS los registros para mantener consistencia
+    const timestampMin = Math.min(...registros.map((r) => r.timestamp))
+    const timestampMax = Math.max(...registros.map((r) => r.timestamp))
+    const rangoTimestamp = timestampMax - timestampMin || 1
+
+    // Dibujar líneas para cada momento (solo los visibles)
     Object.entries(registrosPorMomento).forEach(([momento, registrosMomento]) => {
-      if (registrosMomento.length === 0) return
+      if (registrosMomento.length === 0 || !momentosVisibles[momento as MomentoDia]) return
 
       const color = coloresMomentos[momento as MomentoDia]
       ctx.strokeStyle = color
       ctx.lineWidth = 3
       ctx.globalAlpha = 0.8
-
-      // Encontrar posiciones X basadas en el timestamp global
-      const timestampMin = Math.min(...registros.map((r) => r.timestamp))
-      const timestampMax = Math.max(...registros.map((r) => r.timestamp))
-      const rangoTimestamp = timestampMax - timestampMin || 1
 
       if (registrosMomento.length > 1) {
         ctx.beginPath()
@@ -170,12 +205,8 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       ctx.globalAlpha = 1
     })
 
-    // Dibujar puntos para todos los registros
-    const timestampMin = Math.min(...registros.map((r) => r.timestamp))
-    const timestampMax = Math.max(...registros.map((r) => r.timestamp))
-    const rangoTimestamp = timestampMax - timestampMin || 1
-
-    registros.forEach((registro, index) => {
+    // Dibujar puntos para todos los registros filtrados
+    registrosFiltrados.forEach((registro, index) => {
       const x = padding + ((registro.timestamp - timestampMin) / rangoTimestamp) * width
       const y = padding + height - ((registro.valor - minValor) / rangoValor) * height
 
@@ -194,7 +225,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       ctx.stroke()
 
       // Etiqueta de fecha (solo algunas para evitar solapamiento)
-      if (registros.length <= 15 || index % Math.ceil(registros.length / 10) === 0) {
+      if (registrosFiltrados.length <= 15 || index % Math.ceil(registrosFiltrados.length / 10) === 0) {
         ctx.fillStyle = "#6b7280"
         ctx.textAlign = "center"
         ctx.font = "10px system-ui"
@@ -218,7 +249,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     ctx.font = "14px system-ui"
     ctx.textAlign = "center"
     ctx.fillText("Tiempo", padding + width / 2, rect.height - 10)
-  }, [registros])
+  }, [registrosFiltrados, momentosVisibles, registros])
 
   // Función para exportar el gráfico como imagen
   const exportarGrafico = async () => {
@@ -266,18 +297,19 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     )
   }
 
-  // Calcular estadísticas
-  const valores = registros.map((r) => r.valor)
-  const promedio = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length)
-  const minimo = Math.min(...valores)
-  const maximo = Math.max(...valores)
+  // Calcular estadísticas de los registros filtrados
+  const valoresFiltrados = registrosFiltrados.map((r) => r.valor)
+  const promedio =
+    valoresFiltrados.length > 0 ? Math.round(valoresFiltrados.reduce((a, b) => a + b, 0) / valoresFiltrados.length) : 0
+  const minimo = valoresFiltrados.length > 0 ? Math.min(...valoresFiltrados) : 0
+  const maximo = valoresFiltrados.length > 0 ? Math.max(...valoresFiltrados) : 0
 
-  // Contar registros por rango
-  const registrosBajos = valores.filter((v) => v < 70).length
-  const registrosNormales = valores.filter((v) => v >= 70 && v < 140).length
-  const registrosAltos = valores.filter((v) => v >= 140).length
+  // Contar registros por rango (solo filtrados)
+  const registrosBajos = valoresFiltrados.filter((v) => v < 70).length
+  const registrosNormales = valoresFiltrados.filter((v) => v >= 70 && v < 140).length
+  const registrosAltos = valoresFiltrados.filter((v) => v >= 140).length
 
-  // Contar registros por momento
+  // Contar registros por momento (todos los registros)
   const registrosPorMomento: Record<MomentoDia, number> = {
     Ayunas: 0,
     "2h Después desayuno": 0,
@@ -290,6 +322,9 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
   registros.forEach((registro) => {
     registrosPorMomento[registro.momento]++
   })
+
+  // Contar cuántos momentos están visibles
+  const momentosVisiblesCount = Object.values(momentosVisibles).filter(Boolean).length
 
   return (
     <Card>
@@ -318,12 +353,75 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Controles de visibilidad */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">
+              Mostrar/Ocultar Momentos ({momentosVisiblesCount} de 6 visibles)
+            </h3>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => toggleTodos(true)} className="text-xs">
+                <Eye className="w-3 h-3 mr-1" />
+                Mostrar todos
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => toggleTodos(false)} className="text-xs">
+                <EyeOff className="w-3 h-3 mr-1" />
+                Ocultar todos
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {Object.entries(coloresMomentos).map(([momento, color]) => (
+              <button
+                key={momento}
+                onClick={() => toggleMomento(momento as MomentoDia)}
+                className={`
+                  flex items-center gap-2 p-2 rounded-lg border transition-all text-left text-xs
+                  ${
+                    momentosVisibles[momento as MomentoDia]
+                      ? "bg-white border-gray-300 shadow-sm"
+                      : "bg-gray-50 border-gray-200 opacity-60"
+                  }
+                  hover:shadow-md
+                `}
+              >
+                <div
+                  className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${
+                    momentosVisibles[momento as MomentoDia] ? "" : "opacity-40"
+                  }`}
+                  style={{ backgroundColor: color }}
+                ></div>
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block font-medium">{momento}</span>
+                  <span className="text-gray-500">{registrosPorMomento[momento as MomentoDia]} registros</span>
+                </div>
+                {momentosVisibles[momento as MomentoDia] ? (
+                  <Eye className="w-3 h-3 text-green-600" />
+                ) : (
+                  <EyeOff className="w-3 h-3 text-gray-400" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="relative">
           <canvas
             ref={canvasRef}
             className="w-full h-80 border rounded-lg"
             style={{ width: "100%", height: "320px" }}
           />
+
+          {registrosFiltrados.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-90 rounded-lg">
+              <div className="text-center">
+                <EyeOff className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-500 font-medium">No hay momentos visibles</p>
+                <p className="text-sm text-gray-400">Selecciona al menos un momento para ver el gráfico</p>
+              </div>
+            </div>
+          )}
 
           {/* Leyenda de rangos de glucosa */}
           <div className="flex justify-center gap-6 mt-4 text-sm">
@@ -341,46 +439,44 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
             </div>
           </div>
 
-          {/* Leyenda de momentos del día con colores específicos */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 text-xs">
-            {Object.entries(coloresMomentos).map(([momento, color]) => (
-              <div key={momento} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: color }}></div>
-                <span className="truncate">
-                  {momento} ({registrosPorMomento[momento as MomentoDia]})
-                </span>
+          {/* Estadísticas por rango (solo registros visibles) */}
+          {registrosFiltrados.length > 0 && (
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">Registros Bajos</p>
+                <p className="text-2xl font-bold text-red-700">{registrosBajos}</p>
+                <p className="text-xs text-red-500">
+                  {valoresFiltrados.length > 0 ? Math.round((registrosBajos / valoresFiltrados.length) * 100) : 0}%
+                </p>
               </div>
-            ))}
-          </div>
-
-          {/* Estadísticas por rango */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="text-center p-3 bg-red-50 rounded-lg">
-              <p className="text-sm text-red-600 font-medium">Registros Bajos</p>
-              <p className="text-2xl font-bold text-red-700">{registrosBajos}</p>
-              <p className="text-xs text-red-500">{Math.round((registrosBajos / valores.length) * 100)}%</p>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">Registros Normales</p>
+                <p className="text-2xl font-bold text-green-700">{registrosNormales}</p>
+                <p className="text-xs text-green-500">
+                  {valoresFiltrados.length > 0 ? Math.round((registrosNormales / valoresFiltrados.length) * 100) : 0}%
+                </p>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <p className="text-sm text-orange-600 font-medium">Registros Altos</p>
+                <p className="text-2xl font-bold text-orange-700">{registrosAltos}</p>
+                <p className="text-xs text-orange-500">
+                  {valoresFiltrados.length > 0 ? Math.round((registrosAltos / valoresFiltrados.length) * 100) : 0}%
+                </p>
+              </div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-600 font-medium">Registros Normales</p>
-              <p className="text-2xl font-bold text-green-700">{registrosNormales}</p>
-              <p className="text-xs text-green-500">{Math.round((registrosNormales / valores.length) * 100)}%</p>
-            </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-sm text-orange-600 font-medium">Registros Altos</p>
-              <p className="text-2xl font-bold text-orange-700">{registrosAltos}</p>
-              <p className="text-xs text-orange-500">{Math.round((registrosAltos / valores.length) * 100)}%</p>
-            </div>
-          </div>
+          )}
 
           {/* Información adicional */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Gráfico por momentos ({registros.length} registros)</strong> - Cada línea representa un momento
-              del día diferente.
+              <strong>
+                Gráfico filtrado ({registrosFiltrados.length} de {registros.length} registros visibles)
+              </strong>{" "}
+              - Mostrando solo los momentos seleccionados.
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              <strong>Interpretación:</strong> Observa los patrones de cada momento. Los picos después de comidas son
-              normales, pero valores consistentemente altos pueden requerir ajustes en la medicación o dieta.
+              <strong>Tip:</strong> Usa los controles arriba para mostrar/ocultar momentos específicos y obtener una
+              vista más clara de los patrones que te interesan.
             </p>
           </div>
         </div>
