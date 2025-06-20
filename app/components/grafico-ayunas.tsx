@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import type { RegistroGlucosa, MomentoDia } from "../types/registro"
-import { Activity, Download, ImageIcon, Eye, EyeOff } from "lucide-react"
+import { Activity, Download, ImageIcon, Eye, EyeOff, Calendar, Filter, X } from "lucide-react"
 
 interface GraficoTodosRegistrosProps {
   registros: RegistroGlucosa[]
@@ -24,6 +26,12 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     "2h Después cena": true,
   })
 
+  // Estados para filtros de fecha
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
+  const [presetFecha, setPresetFecha] = useState("todos")
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+
   // Colores para cada momento del día
   const coloresMomentos: Record<MomentoDia, string> = {
     Ayunas: "#ef4444", // Rojo
@@ -32,6 +40,81 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     "2h Después comida": "#22c55e", // Verde
     "Antes cena": "#3b82f6", // Azul
     "2h Después cena": "#8b5cf6", // Púrpura
+  }
+
+  // Función para aplicar presets de fecha
+  const aplicarPresetFecha = (preset: string) => {
+    const hoy = new Date()
+    const fechaHoy = hoy.toISOString().split("T")[0]
+
+    switch (preset) {
+      case "hoy":
+        setFechaInicio(fechaHoy)
+        setFechaFin(fechaHoy)
+        break
+      case "ultima_semana":
+        const hace7Dias = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000)
+        setFechaInicio(hace7Dias.toISOString().split("T")[0])
+        setFechaFin(fechaHoy)
+        break
+      case "ultimo_mes":
+        const hace30Dias = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
+        setFechaInicio(hace30Dias.toISOString().split("T")[0])
+        setFechaFin(fechaHoy)
+        break
+      case "ultimos_3_meses":
+        const hace90Dias = new Date(hoy.getTime() - 90 * 24 * 60 * 60 * 1000)
+        setFechaInicio(hace90Dias.toISOString().split("T")[0])
+        setFechaFin(fechaHoy)
+        break
+      case "todos":
+      default:
+        setFechaInicio("")
+        setFechaFin("")
+        break
+    }
+    setPresetFecha(preset)
+  }
+
+  // Función para filtrar registros por fecha
+  const filtrarPorFecha = (registros: RegistroGlucosa[]) => {
+    if (!fechaInicio && !fechaFin) return registros
+
+    return registros.filter((registro) => {
+      // Convertir fecha del registro (DD/MM/YYYY) a Date para comparar
+      const [dia, mes, año] = registro.fecha.split("/")
+      const fechaRegistro = new Date(Number.parseInt(año), Number.parseInt(mes) - 1, Number.parseInt(dia))
+
+      // Normalizar fechas para comparación (solo día, sin hora)
+      const fechaRegistroNormalizada = new Date(
+        fechaRegistro.getFullYear(),
+        fechaRegistro.getMonth(),
+        fechaRegistro.getDate(),
+      )
+
+      let fechaInicioNormalizada: Date | null = null
+      let fechaFinNormalizada: Date | null = null
+
+      if (fechaInicio) {
+        const fechaInicioDate = new Date(fechaInicio)
+        fechaInicioNormalizada = new Date(
+          fechaInicioDate.getFullYear(),
+          fechaInicioDate.getMonth(),
+          fechaInicioDate.getDate(),
+        )
+      }
+
+      if (fechaFin) {
+        const fechaFinDate = new Date(fechaFin)
+        fechaFinNormalizada = new Date(fechaFinDate.getFullYear(), fechaFinDate.getMonth(), fechaFinDate.getDate())
+      }
+
+      // Comparar fechas normalizadas
+      if (fechaInicioNormalizada && fechaRegistroNormalizada < fechaInicioNormalizada) return false
+      if (fechaFinNormalizada && fechaRegistroNormalizada > fechaFinNormalizada) return false
+
+      return true
+    })
   }
 
   // Función para alternar visibilidad de un momento
@@ -55,8 +138,16 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     setMomentosVisibles(nuevoEstado)
   }
 
-  // Filtrar registros según visibilidad
-  const registrosFiltrados = registros.filter((registro) => momentosVisibles[registro.momento])
+  // Función para limpiar filtros
+  const limpiarFiltros = () => {
+    setFechaInicio("")
+    setFechaFin("")
+    setPresetFecha("todos")
+  }
+
+  // Aplicar filtros: primero por fecha, luego por visibilidad
+  const registrosFiltradosPorFecha = filtrarPorFecha(registros)
+  const registrosFiltrados = registrosFiltradosPorFecha.filter((registro) => momentosVisibles[registro.momento])
 
   useEffect(() => {
     if (!canvasRef.current || registrosFiltrados.length === 0) return
@@ -84,9 +175,8 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     ctx.font = "12px system-ui"
     ctx.textAlign = "center"
 
-    // Obtener valores min y max de TODOS los registros (no solo los filtrados)
-    // para mantener la escala consistente
-    const valores = registros.map((r) => r.valor)
+    // Obtener valores min y max de los registros filtrados por fecha (para escala dinámica)
+    const valores = registrosFiltradosPorFecha.map((r) => r.valor)
     const minValor = Math.min(...valores, 70)
     const maxValor = Math.max(...valores, 200)
     const rangoValor = maxValor - minValor
@@ -171,9 +261,9 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       registrosPorMomento[momento as MomentoDia].sort((a, b) => a.timestamp - b.timestamp)
     })
 
-    // Usar el rango de tiempo de TODOS los registros para mantener consistencia
-    const timestampMin = Math.min(...registros.map((r) => r.timestamp))
-    const timestampMax = Math.max(...registros.map((r) => r.timestamp))
+    // Usar el rango de tiempo de los registros filtrados por fecha
+    const timestampMin = Math.min(...registrosFiltradosPorFecha.map((r) => r.timestamp))
+    const timestampMax = Math.max(...registrosFiltradosPorFecha.map((r) => r.timestamp))
     const rangoTimestamp = timestampMax - timestampMin || 1
 
     // Dibujar líneas para cada momento (solo los visibles)
@@ -249,7 +339,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     ctx.font = "14px system-ui"
     ctx.textAlign = "center"
     ctx.fillText("Tiempo", padding + width / 2, rect.height - 10)
-  }, [registrosFiltrados, momentosVisibles, registros])
+  }, [registrosFiltrados, momentosVisibles, registrosFiltradosPorFecha])
 
   // Función para exportar el gráfico como imagen
   const exportarGrafico = async () => {
@@ -265,7 +355,8 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
       // Crear un enlace temporal para descargar la imagen
       const link = document.createElement("a")
       link.href = dataUrl
-      link.download = `grafico-glucosa-${new Date().toISOString().split("T")[0]}.png`
+      const fechaSufijo = fechaInicio && fechaFin ? `_${fechaInicio}_${fechaFin}` : ""
+      link.download = `grafico-glucosa${fechaSufijo}_${new Date().toISOString().split("T")[0]}.png`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -309,7 +400,7 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
   const registrosNormales = valoresFiltrados.filter((v) => v >= 70 && v < 140).length
   const registrosAltos = valoresFiltrados.filter((v) => v >= 140).length
 
-  // Contar registros por momento (todos los registros)
+  // Contar registros por momento (filtrados por fecha)
   const registrosPorMomento: Record<MomentoDia, number> = {
     Ayunas: 0,
     "2h Después desayuno": 0,
@@ -319,12 +410,16 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     "2h Después cena": 0,
   }
 
-  registros.forEach((registro) => {
+  registrosFiltradosPorFecha.forEach((registro) => {
     registrosPorMomento[registro.momento]++
   })
 
   // Contar cuántos momentos están visibles
   const momentosVisiblesCount = Object.values(momentosVisibles).filter(Boolean).length
+
+  // Verificar si hay filtros activos
+  const hayFiltrosFecha = fechaInicio || fechaFin
+  const registrosFiltradosPorFechaCount = registrosFiltradosPorFecha.length
 
   return (
     <Card>
@@ -333,8 +428,20 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-blue-600" />
             Tendencia por Momentos del Día
+            {hayFiltrosFecha && (
+              <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Filtrado</span>
+            )}
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              {mostrarFiltros ? "Ocultar filtros" : "Filtrar por fecha"}
+            </Button>
             <div className="text-center">
               <p className="text-gray-500">Promedio</p>
               <p
@@ -353,6 +460,117 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Filtros de fecha */}
+        {mostrarFiltros && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Filtrar por Período
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setMostrarFiltros(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Presets rápidos */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+              <Button
+                variant={presetFecha === "todos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => aplicarPresetFecha("todos")}
+                className="text-xs"
+              >
+                Todos
+              </Button>
+              <Button
+                variant={presetFecha === "hoy" ? "default" : "outline"}
+                size="sm"
+                onClick={() => aplicarPresetFecha("hoy")}
+                className="text-xs"
+              >
+                Hoy
+              </Button>
+              <Button
+                variant={presetFecha === "ultima_semana" ? "default" : "outline"}
+                size="sm"
+                onClick={() => aplicarPresetFecha("ultima_semana")}
+                className="text-xs"
+              >
+                7 días
+              </Button>
+              <Button
+                variant={presetFecha === "ultimo_mes" ? "default" : "outline"}
+                size="sm"
+                onClick={() => aplicarPresetFecha("ultimo_mes")}
+                className="text-xs"
+              >
+                30 días
+              </Button>
+              <Button
+                variant={presetFecha === "ultimos_3_meses" ? "default" : "outline"}
+                size="sm"
+                onClick={() => aplicarPresetFecha("ultimos_3_meses")}
+                className="text-xs"
+              >
+                3 meses
+              </Button>
+            </div>
+
+            {/* Fechas personalizadas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="fecha-inicio" className="text-xs">
+                  Fecha inicio
+                </Label>
+                <Input
+                  id="fecha-inicio"
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => {
+                    setFechaInicio(e.target.value)
+                    setPresetFecha("personalizado")
+                  }}
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fecha-fin" className="text-xs">
+                  Fecha fin
+                </Label>
+                <Input
+                  id="fecha-fin"
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => {
+                    setFechaFin(e.target.value)
+                    setPresetFecha("personalizado")
+                  }}
+                  className="text-sm"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" size="sm" onClick={limpiarFiltros} className="w-full flex items-center gap-2">
+                  <Filter className="w-3 h-3" />
+                  Limpiar
+                </Button>
+              </div>
+            </div>
+
+            {/* Información del filtro */}
+            {hayFiltrosFecha && (
+              <div className="mt-3 p-2 bg-blue-50 border-l-4 border-blue-400 rounded text-sm">
+                <p className="text-blue-800">
+                  <strong>Período seleccionado:</strong> {fechaInicio || "Sin límite"} hasta {fechaFin || "Sin límite"}
+                </p>
+                <p className="text-blue-600 text-xs mt-1">
+                  Mostrando {registrosFiltradosPorFechaCount} de {registros.length} registros totales
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Controles de visibilidad */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -413,12 +631,22 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
             style={{ width: "100%", height: "320px" }}
           />
 
-          {registrosFiltrados.length === 0 && (
+          {registrosFiltrados.length === 0 && registrosFiltradosPorFechaCount > 0 && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-90 rounded-lg">
               <div className="text-center">
                 <EyeOff className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-gray-500 font-medium">No hay momentos visibles</p>
                 <p className="text-sm text-gray-400">Selecciona al menos un momento para ver el gráfico</p>
+              </div>
+            </div>
+          )}
+
+          {registrosFiltradosPorFechaCount === 0 && hayFiltrosFecha && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-90 rounded-lg">
+              <div className="text-center">
+                <Calendar className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-500 font-medium">No hay registros en este período</p>
+                <p className="text-sm text-gray-400">Ajusta el rango de fechas o limpia los filtros</p>
               </div>
             </div>
           )}
@@ -470,13 +698,13 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
               <strong>
-                Gráfico filtrado ({registrosFiltrados.length} de {registros.length} registros visibles)
+                Gráfico filtrado ({registrosFiltrados.length} de {registrosFiltradosPorFechaCount} registros visibles)
               </strong>{" "}
-              - Mostrando solo los momentos seleccionados.
+              {hayFiltrosFecha && `- Período: ${fechaInicio || "Inicio"} a ${fechaFin || "Hoy"}`}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              <strong>Tip:</strong> Usa los controles arriba para mostrar/ocultar momentos específicos y obtener una
-              vista más clara de los patrones que te interesan.
+              <strong>Tip:</strong> Combina filtros de fecha y momentos para análisis específicos. Los presets rápidos
+              te ayudan a ver tendencias recientes.
             </p>
           </div>
         </div>
