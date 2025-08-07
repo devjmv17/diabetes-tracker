@@ -76,42 +76,26 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
     setPresetFecha(preset)
   }
 
+  // Función para convertir fecha DD/MM/YYYY a Date para comparación
+  const convertirFechaEspañolaADate = (fechaEspañola: string): Date => {
+    const [dia, mes, año] = fechaEspañola.split("/")
+    return new Date(Number.parseInt(año), Number.parseInt(mes) - 1, Number.parseInt(dia))
+  }
+
   // Función para filtrar registros por fecha
   const filtrarPorFecha = (registros: RegistroGlucosa[]) => {
     if (!fechaInicio && !fechaFin) return registros
 
+    const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : null
+    const fechaFinDate = fechaFin ? new Date(fechaFin) : null
+
     return registros.filter((registro) => {
-      // Convertir fecha del registro (DD/MM/YYYY) a Date para comparar
-      const [dia, mes, año] = registro.fecha.split("/")
-      const fechaRegistro = new Date(Number.parseInt(año), Number.parseInt(mes) - 1, Number.parseInt(dia))
+      // Convertir fecha del registro (DD/MM/YYYY) a Date
+      const fechaRegistroDate = convertirFechaEspañolaADate(registro.fecha)
 
-      // Normalizar fechas para comparación (solo día, sin hora)
-      const fechaRegistroNormalizada = new Date(
-        fechaRegistro.getFullYear(),
-        fechaRegistro.getMonth(),
-        fechaRegistro.getDate(),
-      )
-
-      let fechaInicioNormalizada: Date | null = null
-      let fechaFinNormalizada: Date | null = null
-
-      if (fechaInicio) {
-        const fechaInicioDate = new Date(fechaInicio)
-        fechaInicioNormalizada = new Date(
-          fechaInicioDate.getFullYear(),
-          fechaInicioDate.getMonth(),
-          fechaInicioDate.getDate(),
-        )
-      }
-
-      if (fechaFin) {
-        const fechaFinDate = new Date(fechaFin)
-        fechaFinNormalizada = new Date(fechaFinDate.getFullYear(), fechaFinDate.getMonth(), fechaFinDate.getDate())
-      }
-
-      // Comparar fechas normalizadas
-      if (fechaInicioNormalizada && fechaRegistroNormalizada < fechaInicioNormalizada) return false
-      if (fechaFinNormalizada && fechaRegistroNormalizada > fechaFinNormalizada) return false
+      // Comparar fechas
+      if (fechaInicioDate && fechaRegistroDate < fechaInicioDate) return false
+      if (fechaFinDate && fechaRegistroDate > fechaFinDate) return false
 
       return true
     })
@@ -550,7 +534,12 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
                 />
               </div>
               <div className="flex items-end">
-                <Button variant="outline" size="sm" onClick={limpiarFiltros} className="w-full flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={limpiarFiltros}
+                  className="w-full flex items-center gap-2 bg-transparent"
+                >
                   <Filter className="w-3 h-3" />
                   Limpiar
                 </Button>
@@ -710,7 +699,12 @@ export default function GraficoTodosRegistros({ registros }: GraficoTodosRegistr
         </div>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button onClick={exportarGrafico} disabled={exportando} variant="outline" className="flex items-center gap-2">
+        <Button
+          onClick={exportarGrafico}
+          disabled={exportando}
+          variant="outline"
+          className="flex items-center gap-2 bg-transparent"
+        >
           {exportando ? (
             <>
               <ImageIcon className="w-4 h-4 animate-pulse" />
