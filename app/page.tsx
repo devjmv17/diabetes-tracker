@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import RegistroForm from "./components/registro-form"
 import RegistroList from "./components/registro-list"
-import GraficoTodosRegistros from "./components/grafico-ayunas"
 import ExportButton from "./components/export-button"
 import {
   obtenerRegistrosAction,
@@ -69,11 +68,11 @@ export default async function Home() {
         )}
 
         {/* Gráfico de tendencia de todos los registros */}
-        {todosLosRegistros.length > 0 && (
+        {/* {todosLosRegistros.length > 0 && (
           <div className="mb-8">
             <GraficoTodosRegistros registros={todosLosRegistros} />
           </div>
-        )}
+        )} */}
 
         {/* Lista de registros */}
         <RegistroList registros={registros} />
