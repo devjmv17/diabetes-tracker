@@ -757,14 +757,16 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
           
           th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 10px 8px;
             text-align: left;
+            vertical-align: top;
           }
           
           th {
             background: #f5f5f5;
             font-weight: bold;
             text-align: center;
+            font-size: 12px;
           }
           
           .valor-bajo {
@@ -928,32 +930,69 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
           <thead>
             <tr>
               <th>Fecha</th>
-              <th>Hora</th>
-              <th>Glucosa (mg/dL)</th>
-              <th>Momento del Día</th>
+              <th>Registro 1</th>
+              <th>Registro 2</th>
+              <th>Registro 3</th>
+              <th>Registro 4</th>
+              <th>Registro 5</th>
               <th>Insulina (UI)</th>
-              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
-            ${registrosFiltrados
-              .map((registro) => {
-                const claseValor =
-                  registro.valor < 70 ? "valor-bajo" : registro.valor >= 140 ? "valor-alto" : "valor-normal"
-                const estado = registro.valor < 70 ? "Bajo" : registro.valor >= 140 ? "Alto" : "Normal"
-
-                return `
-                <tr>
-                  <td>${registro.fecha}</td>
-                  <td>${registro.hora}</td>
-                  <td class="${claseValor}">${registro.valor}</td>
-                  <td>${registro.momento}</td>
-                  <td>${registro.insulina}</td>
-                  <td>${estado}</td>
-                </tr>
-              `
+            ${(() => {
+              // Agrupar registros por fecha
+              const registrosPorFecha = {}
+              registrosFiltrados.forEach((registro) => {
+                if (!registrosPorFecha[registro.fecha]) {
+                  registrosPorFecha[registro.fecha] = []
+                }
+                registrosPorFecha[registro.fecha].push(registro)
               })
-              .join("")}
+
+              // Ordenar fechas
+              const fechasOrdenadas = Object.keys(registrosPorFecha).sort((a, b) => {
+                const [diaA, mesA, añoA] = a.split("/")
+                const [diaB, mesB, añoB] = b.split("/")
+                const fechaA = new Date(Number.parseInt(añoA), Number.parseInt(mesA) - 1, Number.parseInt(diaA))
+                const fechaB = new Date(Number.parseInt(añoB), Number.parseInt(mesB) - 1, Number.parseInt(diaB))
+                return fechaB - fechaA // Más reciente primero
+              })
+
+              return fechasOrdenadas
+                .map((fecha) => {
+                  // Ordenar registros del día por hora (timestamp) y tomar máximo 5
+                  const registrosDia = registrosPorFecha[fecha]
+                    .sort((a, b) => a.timestamp - b.timestamp) // Ordenar por hora (más temprano primero)
+                    .slice(0, 5) // Máximo 5 registros
+                  const insulinaDia = registrosPorFecha[fecha].find((r) => r.insulina > 0)?.insulina || 0
+
+                  let fila = `<tr><td><strong>${fecha}</strong></td>`
+
+                  // Agregar hasta 5 registros
+                  for (let i = 0; i < 5; i++) {
+                    if (i < registrosDia.length) {
+                      const registro = registrosDia[i]
+                      const claseValor =
+                        registro.valor < 70 ? "valor-bajo" : registro.valor >= 140 ? "valor-alto" : "valor-normal"
+                      fila += `<td>
+                      <div style="text-align: center;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 2px;">${registro.momento}</div>
+                        <div class="${claseValor}" style="font-weight: bold; font-size: 14px;">${registro.valor} mg/dL</div>
+                      </div>
+                    </td>`
+                    } else {
+                      fila += `<td style="text-align: center; color: #ccc;">-</td>`
+                    }
+                  }
+
+                  // Agregar insulina total
+                  fila += `<td style="text-align: center; font-weight: bold; color: #7c3aed;">${insulinaDia}</td>`
+                  fila += `</tr>`
+
+                  return fila
+                })
+                .join("")
+            })()}
           </tbody>
         </table>
 
