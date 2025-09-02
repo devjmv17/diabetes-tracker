@@ -930,11 +930,11 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
           <thead>
             <tr>
               <th>Fecha</th>
-              <th>Registro 1</th>
-              <th>Registro 2</th>
-              <th>Registro 3</th>
-              <th>Registro 4</th>
-              <th>Registro 5</th>
+              <th>Ayunas</th>
+              <th>2h Después Desayuno</th>
+              <th>Antes Comida</th>
+              <th>2h Después Comida</th>
+              <th>Antes Cena</th>
               <th>Insulina (UI)</th>
             </tr>
           </thead>
@@ -960,30 +960,42 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
 
               return fechasOrdenadas
                 .map((fecha) => {
-                  // Ordenar registros del día por hora (timestamp) y tomar máximo 5
-                  const registrosDia = registrosPorFecha[fecha]
-                    .sort((a, b) => a.timestamp - b.timestamp) // Ordenar por hora (más temprano primero)
-                    .slice(0, 5) // Máximo 5 registros
+                  // Definir el orden específico de momentos para las columnas
+                  const momentosOrdenados = [
+                    "Ayunas",
+                    "2h Después desayuno",
+                    "Antes comida",
+                    "2h Después comida",
+                    "Antes cena",
+                  ]
+
+                  // Crear un mapa de registros por momento para esta fecha
+                  const registrosPorMomento = {}
+                  registrosPorFecha[fecha].forEach((registro) => {
+                    registrosPorMomento[registro.momento] = registro
+                  })
+
+                  // Obtener el primer valor de insulina no cero del día
                   const insulinaDia = registrosPorFecha[fecha].find((r) => r.insulina > 0)?.insulina || 0
 
                   let fila = `<tr><td><strong>${fecha}</strong></td>`
 
-                  // Agregar hasta 5 registros
-                  for (let i = 0; i < 5; i++) {
-                    if (i < registrosDia.length) {
-                      const registro = registrosDia[i]
+                  // Agregar registros según el orden específico de momentos
+                  momentosOrdenados.forEach((momento) => {
+                    const registro = registrosPorMomento[momento]
+                    if (registro) {
                       const claseValor =
                         registro.valor < 70 ? "valor-bajo" : registro.valor >= 140 ? "valor-alto" : "valor-normal"
                       fila += `<td>
-                      <div style="text-align: center;">
-                        <div style="font-size: 11px; color: #666; margin-bottom: 2px;">${registro.momento}</div>
-                        <div class="${claseValor}" style="font-weight: bold; font-size: 14px;">${registro.valor} mg/dL</div>
-                      </div>
-                    </td>`
+                        <div style="text-align: center;">
+                          <div style="font-size: 11px; color: #666; margin-bottom: 2px;">${momento}</div>
+                          <div class="${claseValor}" style="font-weight: bold; font-size: 14px;">${registro.valor} mg/dL</div>
+                        </div>
+                      </td>`
                     } else {
                       fila += `<td style="text-align: center; color: #ccc;">-</td>`
                     }
-                  }
+                  })
 
                   // Agregar insulina total
                   fila += `<td style="text-align: center; font-weight: bold; color: #7c3aed;">${insulinaDia}</td>`
