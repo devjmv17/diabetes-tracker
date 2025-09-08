@@ -826,7 +826,7 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
       <body>
         <!-- 📋 CONTENIDO HTML PARA IMPRESIÓN -->
         <div class="header">
-          <h1>📊 Registros de Glucosa</h1>
+          <h1>📊 Registros de Glucosa - Juan Manuel Vivancos Molinero</h1>
           <p>Reporte generado el ${new Date().toLocaleDateString("es-ES", {
             weekday: "long",
             year: "numeric",
