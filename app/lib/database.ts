@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless"
 import type { RegistroGlucosa, MomentoDia } from "../types/registro"
+import type { RegistroTension } from "../types/tension"
 
 const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
 
@@ -11,6 +12,18 @@ function mapRowToRegistro(row: any): RegistroGlucosa {
     valor: Number(row.valor),
     momento: row.momento as MomentoDia,
     insulina: Number(row.insulina || 0),
+    timestamp: Number(row.timestamp),
+  }
+}
+
+function mapRowToTension(row: any): RegistroTension {
+  return {
+    id: row.id,
+    fecha: new Date(row.fecha).toLocaleDateString("es-ES"),
+    hora: typeof row.hora === "string" ? row.hora.slice(0, 5) : row.hora,
+    sistolica: Number(row.sistolica),
+    diastolica: Number(row.diastolica),
+    pulsaciones: Number(row.pulsaciones),
     timestamp: Number(row.timestamp),
   }
 }
@@ -204,5 +217,72 @@ export async function obtenerUltimaInsulina(): Promise<number> {
   } catch (error) {
     console.error("Error al obtener última insulina:", error)
     return 0
+  }
+}
+
+// --- TENSIÓN ARTERIAL ---
+
+export async function obtenerUltimosRegistrosTension(limite = 5): Promise<RegistroTension[]> {
+  if (!sql) return []
+
+  try {
+    const rows = await sql`
+      SELECT id, fecha, hora, sistolica, diastolica, pulsaciones, timestamp
+      FROM registros_tension 
+      ORDER BY timestamp DESC 
+      LIMIT ${limite}
+    `
+    return rows.map(mapRowToTension)
+  } catch (error) {
+    console.error("Error al obtener registros de tensión:", error)
+    return []
+  }
+}
+
+export async function crearRegistroTension(registro: Omit<RegistroTension, "id">): Promise<RegistroTension | null> {
+  if (!sql) return null
+
+  try {
+    const [dia, mes, año] = registro.fecha.split("/")
+    const fechaISO = `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`
+    const hora = registro.hora + ":00"
+
+    const rows = await sql`
+      INSERT INTO registros_tension (fecha, hora, sistolica, diastolica, pulsaciones, timestamp)
+      VALUES (${fechaISO}, ${hora}, ${registro.sistolica}, ${registro.diastolica}, ${registro.pulsaciones}, ${registro.timestamp})
+      RETURNING id, fecha, hora, sistolica, diastolica, pulsaciones, timestamp
+    `
+    return mapRowToTension(rows[0])
+  } catch (error) {
+    console.error("Error al crear registro de tensión:", error)
+    return null
+  }
+}
+
+export async function obtenerEstadisticasTension() {
+  if (!sql) {
+    return { totalRegistros: 0, promedioSistolica: 0, promedioDiastolica: 0, promedioPulsaciones: 0 }
+  }
+
+  try {
+    const rows = await sql`
+      SELECT 
+        COUNT(*) as total,
+        ROUND(AVG(sistolica)) as avg_sis,
+        ROUND(AVG(diastolica)) as avg_dia,
+        ROUND(AVG(pulsaciones)) as avg_pul
+      FROM registros_tension
+    `
+
+    const row = rows[0]
+    return {
+      totalRegistros: Number(row.total || 0),
+      promedioSistolica: Number(row.avg_sis || 0),
+      promedioDiastolica: Number(row.avg_dia || 0),
+      promedioPulsaciones: Number(row.avg_pul || 0),
+    }
+  } catch (error) {
+    console.error("Error al obtener estadísticas de tensión:", error)
+    return { totalRegistros: 0, promedioSistolica: 0, promedioDiastolica: 0, promedioPulsaciones: 0 }
   }
 }

@@ -12,3 +12,22 @@ export const registroSchema = z.object({
 })
 
 export type RegistroInput = z.infer<typeof registroSchema>
+
+export const tensionSchema = z.object({
+  sistolica: z.coerce
+    .number()
+    .min(70, "La tensión sistólica es muy baja")
+    .max(250, "La tensión sistólica es muy alta"),
+  diastolica: z.coerce
+    .number()
+    .min(40, "La tensión diastólica es muy baja")
+    .max(150, "La tensión diastólica es muy alta"),
+  pulsaciones: z.coerce
+    .number()
+    .min(30, "Las pulsaciones son muy bajas")
+    .max(200, "Las pulsaciones son muy altas"),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido"),
+  hora: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido"),
+})
+
+export type TensionInput = z.infer<typeof tensionSchema>
