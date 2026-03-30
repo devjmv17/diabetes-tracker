@@ -925,7 +925,7 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
           <tbody>
             ${(() => {
               // Agrupar registros por fecha
-              const registrosPorFecha = {}
+              const registrosPorFecha: Record<string, RegistroGlucosa[]> = {}
               registrosFiltrados.forEach((registro) => {
                 if (!registrosPorFecha[registro.fecha]) {
                   registrosPorFecha[registro.fecha] = []
@@ -939,13 +939,13 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
                 const [diaB, mesB, añoB] = b.split("/")
                 const fechaA = new Date(Number.parseInt(añoA), Number.parseInt(mesA) - 1, Number.parseInt(diaA))
                 const fechaB = new Date(Number.parseInt(añoB), Number.parseInt(mesB) - 1, Number.parseInt(diaB))
-                return fechaB - fechaA // Más reciente primero
+                return fechaB.getTime() - fechaA.getTime() // Más reciente primero
               })
 
               return fechasOrdenadas
                 .map((fecha) => {
                   // Definir el orden específico de momentos para las columnas
-                  const momentosOrdenados = [
+                  const momentosOrdenados: MomentoDia[] = [
                     "Ayunas",
                     "2h Después desayuno",
                     "Antes comida",
@@ -954,18 +954,18 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
                   ]
 
                   // Crear un mapa de registros por momento para esta fecha
-                  const registrosPorMomento = {}
+                  const registrosPorMomento: Record<string, RegistroGlucosa> = {}
                   registrosPorFecha[fecha].forEach((registro) => {
                     registrosPorMomento[registro.momento] = registro
                   })
 
                   // Obtener el primer valor de insulina no cero del día
-                  const insulinaDia = registrosPorFecha[fecha].find((r) => r.insulina > 0)?.insulina || 0
+                  const insulinaDia = registrosPorFecha[fecha].find((r: RegistroGlucosa) => r.insulina > 0)?.insulina || 0
 
                   let fila = `<tr><td><strong>${fecha}</strong></td>`
 
                   // Agregar registros según el orden específico de momentos
-                  momentosOrdenados.forEach((momento) => {
+                  momentosOrdenados.forEach((momento: string) => {
                     const registro = registrosPorMomento[momento]
                     if (registro) {
                       const claseValor =
@@ -997,7 +997,7 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
           <p><strong>Control de Glucosa</strong> - Reporte médico personal</p>
           <p>Este documento contiene información médica confidencial</p>
           <p>Generado automáticamente el ${new Date().toLocaleString("es-ES")}</p>
-         <!-- ${imagenGrafico ? `<p>Incluye gráfico de tendencias con $///{momentosVisiblesCount} momentos visibles</p>` : ""} -->
+         <!-- ${imagenGrafico ? `<p>Incluye gráfico de tendencias con ${momentosVisiblesCount} momentos visibles</p>` : ""} -->
         </div>
       </body>
     </html>
@@ -1117,7 +1117,7 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los momentos</SelectItem>
-              {momentos.map((momento) => (
+              {MOMENTOS_DIA.map((momento) => (
                 <SelectItem key={momento} value={momento}>
                   {momento}
                 </SelectItem>

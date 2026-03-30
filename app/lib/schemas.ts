@@ -3,7 +3,7 @@ import { MOMENTOS_DIA } from "./constants"
 
 export const registroSchema = z.object({
   valor: z.coerce.number().min(50, "El valor debe ser al menos 50 mg/dL").max(500, "El valor no puede superar los 500 mg/dL"),
-  momento: z.enum(MOMENTOS_DIA as [string, ...string[]], {
+  momento: z.enum(["Ayunas", "2h Después desayuno", "Antes comida", "2h Después comida", "Antes cena", "2h Después cena"] as const, {
     errorMap: () => ({ message: "Momento del día no válido" }),
   }),
   insulina: z.coerce.number().min(0, "La insulina no puede ser negativa").max(100, "Valor de insulina inusualmente alto").default(0),
