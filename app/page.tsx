@@ -5,6 +5,7 @@ import TensionForm from "./components/tension-form"
 import TensionList from "./components/tension-list"
 import ExportButton from "./components/export-button"
 import DashboardTabs from "./components/dashboard-tabs"
+import GraficoTension from "./components/grafico-tension"
 import {
   obtenerRegistrosAction,
   obtenerEstadisticasAction,
@@ -12,17 +13,19 @@ import {
 import {
   obtenerRegistrosTensionAction,
   obtenerEstadisticasTensionAction,
+  obtenerTodosRegistrosTensionAction,
 } from "./actions/tension"
 import { Activity, TrendingUp, Calendar, Heart } from "lucide-react"
 import BotonTablaRegistros from "./components/boton-tabla-registros"
 import BotonTablaRegistrosTension from "./components/boton-tabla-registros-tension"
 
 export default async function Home() {
-  const [registros, estadisticas, registrosTension, estadisticasTension] = await Promise.all([
+  const [registros, estadisticas, registrosTension, estadisticasTension, todosRegistrosTension] = await Promise.all([
     obtenerRegistrosAction(),
     obtenerEstadisticasAction(),
     obtenerRegistrosTensionAction(),
     obtenerEstadisticasTensionAction(),
+    obtenerTodosRegistrosTensionAction(),
   ])
 
   const glucosaContent = (
@@ -129,6 +132,11 @@ export default async function Home() {
 
       {/* Lista de registros tensión */}
       <TensionList registros={registrosTension} />
+
+      {/* Gráfico de promedios diarios */}
+      {todosRegistrosTension.length >= 2 && (
+        <GraficoTension registros={todosRegistrosTension} />
+      )}
     </>
   )
 
