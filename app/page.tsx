@@ -15,6 +15,7 @@ import {
 } from "./actions/tension"
 import { Activity, TrendingUp, Calendar, Heart } from "lucide-react"
 import BotonTablaRegistros from "./components/boton-tabla-registros"
+import BotonTablaRegistrosTension from "./components/boton-tabla-registros-tension"
 
 export default async function Home() {
   const [registros, estadisticas, registrosTension, estadisticasTension] = await Promise.all([
@@ -119,6 +120,12 @@ export default async function Home() {
 
       {/* Formulario Tensión */}
       <TensionForm />
+
+      {estadisticasTension.totalRegistros > 0 && (
+        <div className="mb-6 flex flex-col md:flex-row gap-4">
+          <BotonTablaRegistrosTension totalRegistros={estadisticasTension.totalRegistros} />
+        </div>
+      )}
 
       {/* Lista de registros tensión */}
       <TensionList registros={registrosTension} />

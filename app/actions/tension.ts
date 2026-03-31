@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { crearRegistroTension, obtenerUltimosRegistrosTension, obtenerEstadisticasTension } from "../lib/database"
+import { crearRegistroTension, obtenerUltimosRegistrosTension, obtenerEstadisticasTension, obtenerTodosLosRegistrosTension } from "../lib/database"
 import { tensionSchema } from "../lib/schemas"
 import type { RegistroTension } from "../types/tension"
 
@@ -44,6 +44,10 @@ export async function agregarRegistroTensionAction(formData: FormData) {
 
 export async function obtenerRegistrosTensionAction() {
   return await obtenerUltimosRegistrosTension(5)
+}
+
+export async function obtenerTodosRegistrosTensionAction() {
+  return await obtenerTodosLosRegistrosTension()
 }
 
 export async function obtenerEstadisticasTensionAction() {

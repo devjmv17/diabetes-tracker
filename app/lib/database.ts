@@ -239,6 +239,22 @@ export async function obtenerUltimosRegistrosTension(limite = 5): Promise<Regist
   }
 }
 
+export async function obtenerTodosLosRegistrosTension(): Promise<RegistroTension[]> {
+  if (!sql) return []
+
+  try {
+    const rows = await sql`
+      SELECT id, fecha, hora, sistolica, diastolica, pulsaciones, timestamp
+      FROM registros_tension 
+      ORDER BY timestamp DESC
+    `
+    return rows.map(mapRowToTension)
+  } catch (error) {
+    console.error("Error al obtener todos los registros de tensión:", error)
+    return []
+  }
+}
+
 export async function crearRegistroTension(registro: Omit<RegistroTension, "id">): Promise<RegistroTension | null> {
   if (!sql) return null
 
