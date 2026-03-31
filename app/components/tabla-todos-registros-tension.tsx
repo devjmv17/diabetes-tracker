@@ -392,6 +392,446 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
     setPresetFecha("todos")
   }
 
+  const imprimirRegistros = () => {
+    const promedioSis = registrosFiltrados.length > 0
+      ? Math.round(registrosFiltrados.reduce((sum, r) => sum + r.sistolica, 0) / registrosFiltrados.length)
+      : 0
+    const promedioDia = registrosFiltrados.length > 0
+      ? Math.round(registrosFiltrados.reduce((sum, r) => sum + r.diastolica, 0) / registrosFiltrados.length)
+      : 0
+    const promedioPulso = registrosFiltrados.length > 0
+      ? Math.round(registrosFiltrados.reduce((sum, r) => sum + r.pulsaciones, 0) / registrosFiltrados.length)
+      : 0
+
+    const minimaSis = registrosFiltrados.length > 0 ? Math.min(...registrosFiltrados.map((r) => r.sistolica)) : 0
+    const maximaSis = registrosFiltrados.length > 0 ? Math.max(...registrosFiltrados.map((r) => r.sistolica)) : 0
+    const minimaDia = registrosFiltrados.length > 0 ? Math.min(...registrosFiltrados.map((r) => r.diastolica)) : 0
+    const maximaDia = registrosFiltrados.length > 0 ? Math.max(...registrosFiltrados.map((r) => r.diastolica)) : 0
+
+    const registrosBajos = registrosFiltrados.filter((r) => r.sistolica < 90 || r.diastolica < 60).length
+    const registrosNormales = registrosFiltrados.filter((r) => r.sistolica >= 90 && r.sistolica < 130 && r.diastolica >= 60 && r.diastolica < 80).length
+    const registrosElevados = registrosFiltrados.filter((r) => r.sistolica >= 120 && r.sistolica < 130 && r.diastolica < 80).length
+    const registrosAlta1 = registrosFiltrados.filter((r) => r.sistolica >= 130 || r.diastolica >= 80).length
+    const registrosAlta2 = registrosFiltrados.filter((r) => r.sistolica >= 140 || r.diastolica >= 90).length
+
+    const periodoTexto =
+      fechaInicio && fechaFin
+        ? `${fechaInicio} hasta ${fechaFin}`
+        : fechaInicio
+          ? `Desde ${fechaInicio}`
+          : fechaFin
+            ? `Hasta ${fechaFin}`
+            : "Todos los registros"
+
+    let imagenGrafico = ""
+    if (mostrarGrafico && canvasRef.current && registrosFiltrados.length > 0) {
+      try {
+        imagenGrafico = canvasRef.current.toDataURL("image/png")
+      } catch (error) {
+        console.warn("No se pudo obtener la imagen del gráfico:", error)
+      }
+    }
+
+    const contenidoImpresion = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Registros de Tensión - ${new Date().toLocaleDateString("es-ES")}</title>
+        <style>
+          @media print {
+            @page {
+              margin: 1cm;
+              size: A4;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 12px;
+              line-height: 1.4;
+              color: #000;
+              background: white;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+          }
+          
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: #000;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+          }
+          
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+          }
+          
+          .header p {
+            margin: 5px 0;
+            color: #666;
+          }
+          
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+          }
+          
+          .stat-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            background: #f9f9f9;
+          }
+          
+          .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+          }
+          
+          .stat-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+          }
+          
+          .stat-card .subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+          }
+
+          .ranges-summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+          }
+          
+          .range-card {
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+          }
+          
+          .range-card.bajo {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+          }
+          
+          .range-card.normal {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+          }
+          
+          .range-card.elevada {
+            background: #fefce8;
+            border-color: #fef08a;
+          }
+          
+          .range-card.alta1 {
+            background: #fff7ed;
+            border-color: #fed7aa;
+          }
+          
+          .range-card.alta2 {
+            background: #fef2f2;
+            border-color: #fecaca;
+          }
+          
+          .range-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+          }
+          
+          .range-card .count {
+            font-size: 18px;
+            font-weight: bold;
+          }
+
+          .grafico-section {
+            margin: 30px 0;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+          }
+
+          .grafico-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+          }
+
+          .grafico-imagen {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 15px 0;
+          }
+
+          .rangos-leyenda {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            font-size: 12px;
+          }
+
+          .rango-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          }
+
+          .rango-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 11px;
+          }
+          
+          th, td {
+            border: 1px solid #ddd;
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: top;
+          }
+          
+          th {
+            background: #f5f5f5;
+            font-weight: bold;
+            text-align: center;
+            font-size: 12px;
+          }
+          
+          .valor-bajo {
+            color: #2563eb;
+            font-weight: bold;
+          }
+          
+          .valor-normal {
+            color: #059669;
+            font-weight: bold;
+          }
+          
+          .valor-elevada {
+            color: #ca8a04;
+            font-weight: bold;
+          }
+          
+          .valor-alta1 {
+            color: #ea580c;
+            font-weight: bold;
+          }
+          
+          .valor-alta2 {
+            color: #dc2626;
+            font-weight: bold;
+          }
+          
+          .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+          }
+          
+          .periodo-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+          }
+          
+          .periodo-info h3 {
+            margin: 0 0 5px 0;
+            color: #0369a1;
+            font-size: 16px;
+          }
+          
+          .periodo-info p {
+            margin: 0;
+            font-size: 13px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>💓 Registros de Tensión Arterial - Juan Manuel Vivancos Molinero</h1>
+          <p>Reporte generado el ${new Date().toLocaleDateString("es-ES", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}</p>
+          <p>Hora: ${new Date().toLocaleTimeString("es-ES")}</p>
+        </div>
+
+        <div class="periodo-info">
+          <h3>📅 Período del Reporte</h3>
+          <p><strong>${periodoTexto}</strong> - Total de registros: <strong>${registrosFiltrados.length}</strong> ${hayFiltrosActivos ? `(datos filtrados)` : ""}</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Presión Promedio</h3>
+            <div class="value">${promedioSis}/${promedioDia}</div>
+            <div class="subtitle">mmHg</div>
+          </div>
+          <div class="stat-card">
+            <h3>Rango Sistólica</h3>
+            <div class="value">${minimaSis} - ${maximaSis}</div>
+            <div class="subtitle">mmHg</div>
+          </div>
+          <div class="stat-card">
+            <h3>Promedio Pulso</h3>
+            <div class="value">${promedioPulso}</div>
+            <div class="subtitle">BPM</div>
+          </div>
+        </div>
+
+        <div class="ranges-summary">
+          <div class="range-card baja">
+            <h4>🔵 Baja</h4>
+            <div class="count">${registrosBajos}</div>
+            <div style="font-size: 10px; margin-top: 5px;">&lt;90/60</div>
+          </div>
+          <div class="range-card normal">
+            <h4>🟢 Normal</h4>
+            <div class="count">${registrosNormales}</div>
+            <div style="font-size: 10px; margin-top: 5px;">90-129/60-79</div>
+          </div>
+          <div class="range-card elevada">
+            <h4>🟡 Elevada</h4>
+            <div class="count">${registrosElevados}</div>
+            <div style="font-size: 10px; margin-top: 5px;">120-129/&lt;80</div>
+          </div>
+          <div class="range-card alta1">
+            <h4>🟠 Hipertensión N1</h4>
+            <div class="count">${registrosAlta1}</div>
+            <div style="font-size: 10px; margin-top: 5px;">130-139/80-89</div>
+          </div>
+          <div class="range-card alta2">
+            <h4>🔴 Hipertensión N2</h4>
+            <div class="count">${registrosAlta2}</div>
+            <div style="font-size: 10px; margin-top: 5px;">≥140/90</div>
+          </div>
+        </div>
+
+        ${
+          imagenGrafico
+            ? `
+        <div class="grafico-section">
+          <h3>📈 Gráfico de Tensión Arterial</h3>
+          <img src="${imagenGrafico}" alt="Gráfico de tensión arterial" class="grafico-imagen" />
+          
+          <div class="rangos-leyenda">
+            <div class="rango-item">
+              <div class="rango-color" style="background-color: #ef4444;"></div>
+              <span>Sistólica</span>
+            </div>
+            <div class="rango-item">
+              <div class="rango-color" style="background-color: #3b82f6;"></div>
+              <span>Diastólica</span>
+            </div>
+          </div>
+        </div>
+        `
+            : ""
+        }
+
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Sistólica</th>
+              <th>Diastólica</th>
+              <th>Pulsaciones</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${registrosFiltrados
+              .slice(0, 100)
+              .map((registro) => {
+                const clasificacion = getClasificacion(registro.sistolica, registro.diastolica)
+                const claseValor =
+                  clasificacion === "alta2"
+                    ? "valor-alta2"
+                    : clasificacion === "alta1"
+                      ? "valor-alta1"
+                      : clasificacion === "elevada"
+                        ? "valor-elevada"
+                        : clasificacion === "bajo"
+                          ? "valor-bajo"
+                          : "valor-normal"
+                const estado = getStatusText(registro.sistolica, registro.diastolica)
+                return `<tr>
+                  <td><strong>${registro.fecha}</strong><br/><span style="font-size: 10px; color: #666;">${registro.hora}</span></td>
+                  <td class="${claseValor}" style="text-align: center; font-size: 14px;">${registro.sistolica} mmHg</td>
+                  <td class="${claseValor}" style="text-align: center; font-size: 14px;">${registro.diastolica} mmHg</td>
+                  <td style="text-align: center;"><strong>${registro.pulsaciones}</strong> BPM</td>
+                  <td style="text-align: center;">${estado}</td>
+                </tr>`
+              })
+              .join("")}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p><strong>Control de Tensión Arterial</strong> - Reporte médico personal</p>
+          <p>Este documento contiene información médica confidencial</p>
+          <p>Generado automáticamente el ${new Date().toLocaleString("es-ES")}</p>
+        </div>
+      </body>
+    </html>
+  `
+
+    const ventanaImpresion = window.open("", "_blank")
+    if (ventanaImpresion) {
+      ventanaImpresion.document.write(contenidoImpresion)
+      ventanaImpresion.document.close()
+
+      ventanaImpresion.onload = () => {
+        ventanaImpresion.focus()
+        ventanaImpresion.print()
+      }
+    } else {
+      alert("No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.")
+    }
+  }
+
   const getStatusColor = (sis: number, dia: number) => {
     if (sis >= 140 || dia >= 90) return "bg-red-100 text-red-800 border-red-200"
     if (sis >= 130 || dia >= 80) return "bg-orange-100 text-orange-800 border-orange-200"
@@ -454,7 +894,7 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
               {mostrarGrafico ? "Ocultar gráfico" : "Mostrar gráfico"}
             </Button>
             {registrosFiltrados.length > 0 && (
-              <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent">
+              <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent" onClick={imprimirRegistros}>
                 <Printer className="w-4 h-4" />
                 Imprimir
               </Button>
