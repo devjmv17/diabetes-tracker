@@ -4,6 +4,7 @@ import RegistroList from "./components/registro-list"
 import TensionForm from "./components/tension-form"
 import TensionList from "./components/tension-list"
 import ExportButton from "./components/export-button"
+import ExportResumenButton from "./components/export-resumen-button"
 import DashboardTabs from "./components/dashboard-tabs"
 import GraficoTension from "./components/grafico-tension"
 import {
@@ -66,6 +67,7 @@ export default async function Home() {
       {estadisticas.totalRegistros > 0 && (
         <div className="mb-6 flex flex-col md:flex-row gap-4">
           <ExportButton />
+          <ExportResumenButton />
           <BotonTablaRegistros />
         </div>
       )}
