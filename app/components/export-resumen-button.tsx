@@ -27,7 +27,12 @@ export default function ExportResumenButton() {
       }
       const data: ResumenGlucosa[] = await response.json()
       if (data.length === 0) throw new Error("No hay registros de glucosa")
-      setDatosGlucosa(data)
+      
+      const fechasUnicas = data.filter((item, index, self) => 
+        index === self.findIndex(t => t.fecha === item.fecha)
+      )
+      
+      setDatosGlucosa(fechasUnicas)
       setTimeout(() => window.print(), 100)
       toast.success("Informe de glucosa abierto para guardar como PDF")
     } catch (error) {

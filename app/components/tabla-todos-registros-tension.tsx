@@ -131,7 +131,12 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
       }
       const data = await response.json()
       if (data.length === 0) throw new Error("No hay registros de tensión")
-      setDatosTension(data)
+      
+      const fechasUnicas = data.filter((item: { fecha: string }, index: number, self: { fecha: string }[]) => 
+        index === self.findIndex((t) => t.fecha === item.fecha)
+      )
+      
+      setDatosTension(fechasUnicas)
       setTimeout(() => window.print(), 100)
       toast.success("Informe de tensión abierto para guardar como PDF")
     } catch (error) {
