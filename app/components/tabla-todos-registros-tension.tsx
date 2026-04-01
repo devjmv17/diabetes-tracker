@@ -59,7 +59,7 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const [loadingExport, setLoadingExport] = useState(false)
-  const [datosTension, setDatosTension] = useState<{ fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null }[] | null>(null)
+  const [datosTension, setDatosTension] = useState<{ fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[] }[] | null>(null)
   const printTensionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1252,29 +1252,39 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
             <h1 className="text-2xl font-bold">Informe de Tensión Arterial</h1>
             <p className="text-gray-600">Fecha de exportación: {new Date().toLocaleDateString("es-ES")}</p>
           </div>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-red-500 text-white">
-                <th className="border p-2 text-left">Fecha</th>
-                <th className="border p-2">Sistólica (mmHg)</th>
-                <th className="border p-2">Diastólica (mmHg)</th>
-                <th className="border p-2">Pulsaciones (BPM)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datosTension.map((d, i) => (
-                <tr key={d.fecha} className={i % 2 === 0 ? "bg-gray-100" : ""}>
-                  <td className="border p-2">{d.fecha}</td>
-                  <td className="border p-2 text-center">{d.sistolicaPromedio ?? "-"}</td>
-                  <td className="border p-2 text-center">{d.diastolicaPromedio ?? "-"}</td>
-                  <td className="border p-2 text-center">{d.pulsacionesPromedio ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          
+          {datosTension.map((d, i) => (
+            <div key={d.fecha} className="mb-6 break-inside-avoid">
+              <div className="bg-gray-200 p-2 font-bold text-center">
+                {d.fecha} - Promedios: Sistólica {d.sistolicaPromedio ?? "-"} / Diastólica {d.diastolicaPromedio ?? "-"} / Pulsaciones {d.pulsacionesPromedio ?? "-"}
+              </div>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-red-100">
+                    <th className="border p-1 text-left">Hora</th>
+                    <th className="border p-1">Sistólica</th>
+                    <th className="border p-1">Diastólica</th>
+                    <th className="border p-1">Pulsaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.registros.map((r, j) => (
+                    <tr key={j} className={j % 2 === 0 ? "bg-gray-50" : ""}>
+                      <td className="border p-1">{r.hora}</td>
+                      <td className="border p-1 text-center">{r.sistolica}</td>
+                      <td className="border p-1 text-center">{r.diastolica}</td>
+                      <td className="border p-1 text-center">{r.pulsaciones}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          
           <div className="mt-6 p-4 bg-gray-50 rounded">
             <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
             <p>• Días de registro: {datosTension.length}</p>
+            <p>• Total de mediciones: {datosTension.reduce((acc, d) => acc + d.registros.length, 0)}</p>
           </div>
         </div>
       )}

@@ -9,16 +9,27 @@ export async function GET() {
       return NextResponse.json({ error: "No hay registros de tensión" }, { status: 404 })
     }
 
-    const datosPorFecha: Record<string, { sistolica: number[]; diastolica: number[]; pulsaciones: number[] }> = {}
+    const datosPorFecha: Record<string, { 
+      sistolica: number[]; 
+      diastolica: number[]; 
+      pulsaciones: number[];
+      registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[];
+    }> = {}
 
     registros.forEach(reg => {
       const fecha = reg.fecha
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = { sistolica: [], diastolica: [], pulsaciones: [] }
+        datosPorFecha[fecha] = { sistolica: [], diastolica: [], pulsaciones: [], registros: [] }
       }
       datosPorFecha[fecha].sistolica.push(reg.sistolica)
       datosPorFecha[fecha].diastolica.push(reg.diastolica)
       datosPorFecha[fecha].pulsaciones.push(reg.pulsaciones)
+      datosPorFecha[fecha].registros.push({
+        hora: reg.hora,
+        sistolica: reg.sistolica,
+        diastolica: reg.diastolica,
+        pulsaciones: reg.pulsaciones
+      })
     })
 
     const calcularPromedio = (arr: number[]) =>
@@ -36,7 +47,8 @@ export async function GET() {
         fecha,
         sistolicaPromedio: calcularPromedio(datos.sistolica),
         diastolicaPromedio: calcularPromedio(datos.diastolica),
-        pulsacionesPromedio: calcularPromedio(datos.pulsaciones)
+        pulsacionesPromedio: calcularPromedio(datos.pulsaciones),
+        registros: datos.registros
       }
     })
 

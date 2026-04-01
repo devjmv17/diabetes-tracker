@@ -9,6 +9,7 @@ interface ResumenGlucosa {
   fecha: string
   glucosaPromedio: number | null
   insulinaTotal: number
+  registros: { hora: string; momento: string; valor: number; insulina: number }[]
 }
 
 export default function ExportResumenButton() {
@@ -55,29 +56,41 @@ export default function ExportResumenButton() {
             <h1 className="text-2xl font-bold">Informe de Glucosa</h1>
             <p className="text-gray-600">Fecha de exportación: {new Date().toLocaleDateString("es-ES")}</p>
           </div>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-blue-500 text-white">
-                <th className="border p-2 text-left">Fecha</th>
-                <th className="border p-2">Glucosa Prom. (mg/dL)</th>
-                <th className="border p-2">Insulina Total (UI)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datosGlucosa.map((d, i) => (
-                <tr key={d.fecha} className={i % 2 === 0 ? "bg-gray-100" : ""}>
-                  <td className="border p-2">{d.fecha}</td>
-                  <td className="border p-2 text-center">{d.glucosaPromedio ?? "-"}</td>
-                  <td className="border p-2 text-center">{d.insulinaTotal > 0 ? d.insulinaTotal : "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          
+          {datosGlucosa.map((d, i) => (
+            <div key={d.fecha} className="mb-6 break-inside-avoid">
+              <div className="bg-gray-200 p-2 font-bold text-center">
+                {d.fecha} - Promedio: {d.glucosaPromedio ?? "-"} mg/dL - Insulina: {d.insulinaTotal > 0 ? `${d.insulinaTotal} UI` : "-"}
+              </div>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="border p-1 text-left">Hora</th>
+                    <th className="border p-1">Momento</th>
+                    <th className="border p-1">Glucosa (mg/dL)</th>
+                    <th className="border p-1">Insulina (UI)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.registros.map((r, j) => (
+                    <tr key={j} className={j % 2 === 0 ? "bg-gray-50" : ""}>
+                      <td className="border p-1">{r.hora}</td>
+                      <td className="border p-1">{r.momento}</td>
+                      <td className="border p-1 text-center">{r.valor}</td>
+                      <td className="border p-1 text-center">{r.insulina > 0 ? r.insulina : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          
           <div className="mt-6 p-4 bg-gray-50 rounded">
             <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
             <p>• Promedio de glucosa: {glucosaMedia} mg/dL</p>
             <p>• Total insulina: {insulinaTotal} UI</p>
             <p>• Días de registro: {datosGlucosa.length}</p>
+            <p>• Total de mediciones: {datosGlucosa.reduce((acc, d) => acc + d.registros.length, 0)}</p>
           </div>
         </div>
       )}

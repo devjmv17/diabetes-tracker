@@ -9,15 +9,25 @@ export async function GET() {
       return NextResponse.json({ error: "No hay registros de glucosa" }, { status: 404 })
     }
 
-    const datosPorFecha: Record<string, { glucosa: number[]; insulinaTotal: number }> = {}
+    const datosPorFecha: Record<string, { 
+      glucosa: number[]; 
+      insulinaTotal: number;
+      registros: { hora: string; momento: string; valor: number; insulina: number }[];
+    }> = {}
 
     registros.forEach(reg => {
       const fecha = reg.fecha
       if (!datosPorFecha[fecha]) {
-        datosPorFecha[fecha] = { glucosa: [], insulinaTotal: 0 }
+        datosPorFecha[fecha] = { glucosa: [], insulinaTotal: 0, registros: [] }
       }
       datosPorFecha[fecha].glucosa.push(reg.valor)
       datosPorFecha[fecha].insulinaTotal += reg.insulina || 0
+      datosPorFecha[fecha].registros.push({
+        hora: reg.hora,
+        momento: reg.momento,
+        valor: reg.valor,
+        insulina: reg.insulina || 0
+      })
     })
 
     const calcularPromedio = (arr: number[]) =>
@@ -34,7 +44,8 @@ export async function GET() {
       return {
         fecha,
         glucosaPromedio: calcularPromedio(datos.glucosa),
-        insulinaTotal: datos.insulinaTotal
+        insulinaTotal: datos.insulinaTotal,
+        registros: datos.registros
       }
     })
 
