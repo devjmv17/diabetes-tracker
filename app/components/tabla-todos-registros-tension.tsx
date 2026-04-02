@@ -133,16 +133,9 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
         throw new Error(errorData.error || "Error al exportar")
       }
       const data = await response.json()
-      if (data.diario.length === 0) throw new Error("No hay registros de tensión")
+      if (!data.diario || data.diario.length === 0) throw new Error("No hay registros de tensión")
       
-      const seen = new Set<string>()
-      const fechasUnicas = data.diario.filter((item: { fecha: string }) => {
-        if (seen.has(item.fecha)) return false
-        seen.add(item.fecha)
-        return true
-      })
-      
-      setDatosTension({ diario: fechasUnicas, mensual: data.mensual })
+      setDatosTension({ diario: data.diario, mensual: data.mensual || [] })
       setTimeout(() => window.print(), 100)
       toast.success("Informe de tensión abierto para guardar como PDF")
     } catch (error) {
