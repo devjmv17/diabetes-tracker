@@ -132,9 +132,12 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
       const data = await response.json()
       if (data.length === 0) throw new Error("No hay registros de tensión")
       
-      const fechasUnicas = data.filter((item: { fecha: string }, index: number, self: { fecha: string }[]) => 
-        index === self.findIndex((t) => t.fecha === item.fecha)
-      )
+      const seen = new Set<string>()
+      const fechasUnicas = data.filter((item: { fecha: string }) => {
+        if (seen.has(item.fecha)) return false
+        seen.add(item.fecha)
+        return true
+      })
       
       setDatosTension(fechasUnicas)
       setTimeout(() => window.print(), 100)
