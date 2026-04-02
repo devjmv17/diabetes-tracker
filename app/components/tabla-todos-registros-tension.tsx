@@ -1292,6 +1292,34 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
             </div>
           ))}
           
+          {datosTension.mensual && datosTension.mensual.length > 0 && (
+            <div className="mt-6 break-inside-avoid">
+              <h2 className="font-bold text-lg mb-2">Resumen Mensual:</h2>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="border p-2 text-left">Mes</th>
+                    <th className="border p-2">Sistólica Prom.</th>
+                    <th className="border p-2">Diastólica Prom.</th>
+                    <th className="border p-2">Pulsaciones Prom.</th>
+                    <th className="border p-2">Total Registros</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datosTension.mensual.map((m: any) => (
+                    <tr key={m.mes} className="bg-gray-50">
+                      <td className="border p-2 font-medium">{m.mes}</td>
+                      <td className="border p-2 text-center">{m.sistolicaPromedio ?? "-"}</td>
+                      <td className="border p-2 text-center">{m.diastolicaPromedio ?? "-"}</td>
+                      <td className="border p-2 text-center">{m.pulsacionesPromedio ?? "-"}</td>
+                      <td className="border p-2 text-center">{m.totalRegistros}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
           <div className="mt-6 p-4 bg-gray-50 rounded">
             <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
             <p>• Días de registro: {datosTension.diario.length}</p>
