@@ -59,7 +59,10 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const [loadingExport, setLoadingExport] = useState(false)
-  const [datosTension, setDatosTension] = useState<{ fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[] }[] | null>(null)
+  const [datosTension, setDatosTension] = useState<{
+    diario: { fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[] }[];
+    mensual: { mes: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; totalRegistros: number }[];
+  } | null>(null)
   const printTensionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -130,16 +133,16 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
         throw new Error(errorData.error || "Error al exportar")
       }
       const data = await response.json()
-      if (data.length === 0) throw new Error("No hay registros de tensión")
+      if (data.diario.length === 0) throw new Error("No hay registros de tensión")
       
       const seen = new Set<string>()
-      const fechasUnicas = data.filter((item: { fecha: string }) => {
+      const fechasUnicas = data.diario.filter((item: { fecha: string }) => {
         if (seen.has(item.fecha)) return false
         seen.add(item.fecha)
         return true
       })
       
-      setDatosTension(fechasUnicas)
+      setDatosTension({ diario: fechasUnicas, mensual: data.mensual })
       setTimeout(() => window.print(), 100)
       toast.success("Informe de tensión abierto para guardar como PDF")
     } catch (error) {
