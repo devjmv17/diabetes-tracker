@@ -1264,7 +1264,7 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
             <p className="text-gray-600">Fecha de exportación: {new Date().toLocaleDateString("es-ES")}</p>
           </div>
           
-          {datosTension.map((d, i) => (
+          {datosTension.diario.map((d) => (
             <div key={d.fecha} className="mb-6 break-inside-avoid">
               <div className="bg-gray-200 p-2 font-bold text-center">
                 {d.fecha} - Promedios: Sistólica {d.sistolicaPromedio ?? "-"} / Diastólica {d.diastolicaPromedio ?? "-"} / Pulsaciones {d.pulsacionesPromedio ?? "-"}
@@ -1294,8 +1294,8 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
           
           <div className="mt-6 p-4 bg-gray-50 rounded">
             <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
-            <p>• Días de registro: {datosTension.length}</p>
-            <p>• Total de mediciones: {datosTension.reduce((acc, d) => acc + d.registros.length, 0)}</p>
+            <p>• Días de registro: {datosTension.diario.length}</p>
+            <p>• Total de mediciones: {datosTension.diario.reduce((acc: number, d: any) => acc + d.registros.length, 0)}</p>
           </div>
         </div>
       )}
