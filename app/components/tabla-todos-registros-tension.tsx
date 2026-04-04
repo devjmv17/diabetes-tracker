@@ -315,6 +315,38 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
     }
   }
 
+  const handleExportTensionCSV = () => {
+    if (registrosFiltrados.length === 0) {
+      toast.error("No hay registros para exportar")
+      return
+    }
+
+    const headers = ["Fecha", "Hora", "Sistólica (mmHg)", "Diastólica (mmHg)", "Pulsaciones (BPM)", "Estado"]
+    const rows = registrosFiltrados.map(reg => {
+      const clasificacion = (() => {
+        if (reg.sistolica >= 140 || reg.diastolica >= 90) return "Hipertensión N2"
+        if (reg.sistolica >= 130 || reg.diastolica >= 80) return "Hipertensión N1"
+        if (reg.sistolica >= 120 && reg.diastolica < 80) return "Elevada"
+        if (reg.sistolica < 90 || reg.diastolica < 60) return "Baja"
+        return "Normal"
+      })()
+      return [reg.fecha, reg.hora, reg.sistolica, reg.diastolica, reg.pulsaciones, clasificacion]
+    })
+
+    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    const fechaSufijo = fechaInicio && fechaFin ? `_${fechaInicio}_${fechaFin}` : ""
+    a.download = `registros-tension${fechaSufijo}_${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    toast.success("Datos exportados correctamente")
+  }
+
   const filtrarPorFecha = (registros: RegistroTension[]) => {
     if (!fechaInicio && !fechaFin) return registros
 
@@ -1097,6 +1129,10 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
                 <Button variant="outline" size="sm" className="flex items-center gap-1 md:gap-2 bg-transparent text-xs md:text-sm" onClick={imprimirRegistros}>
                   <Printer className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">Imprimir</span>
+                </Button>
+                <Button variant="outline" size="sm" className="flex items-center gap-1 md:gap-2 bg-transparent text-xs md:text-sm" onClick={handleExportTensionCSV}>
+                  <Download className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">CSV</span>
                 </Button>
                 <Button variant="outline" size="sm" className="flex items-center gap-1 md:gap-2 bg-transparent text-xs md:text-sm" onClick={handleExportTensionPDF}>
                   <FileText className="w-3 h-3 md:w-4 md:h-4" />
