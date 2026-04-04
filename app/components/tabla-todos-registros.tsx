@@ -1062,38 +1062,38 @@ export default function TablaTodosRegistros({ onCerrar }: TablaTodosRegistrosPro
   }
 
   return (
-    <Card className="fixed inset-4 z-50 overflow-hidden flex flex-col">
+    <Card className="fixed inset-2 md:inset-4 z-50 overflow-hidden flex flex-col">
       <CardHeader className="flex-shrink-0">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-row flex-1">
-            <Table className="w-5 h-5 text-blue-600" />
-            Todos los Registros ({registrosFiltrados.length} de {registros.length})
+        <CardTitle className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div className="flex items-center gap-2 flex-row flex-1 min-w-0">
+            <Table className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span className="text-sm md:text-base truncate">Todos los Registros ({registrosFiltrados.length} de {registros.length})</span>
             {hayFiltrosActivos && (
-              <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Filtrado</span>
+              <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex-shrink-0">Filtrado</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-wrap justify-end">
             <Button
               onClick={() => setMostrarGrafico(!mostrarGrafico)}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm"
             >
-              <BarChart3 className="w-4 h-4" />
-              {mostrarGrafico ? "Ocultar gráfico" : "Mostrar gráfico"}
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">{mostrarGrafico ? "Ocultar" : "Mostrar"}</span>
             </Button>
             {registrosFiltrados.length > 0 && (
               <Button
-                onClick={imprimirRegistros} // ⭐ AQUÍ SE LLAMA LA FUNCIÓN
+                onClick={imprimirRegistros}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-transparent"
+                className="flex items-center gap-1 md:gap-2 bg-transparent text-xs md:text-sm"
               >
-                <Printer className="w-4 h-4" />
-                Imprimir
+                <Printer className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Imprimir</span>
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={onCerrar}>
+            <Button variant="ghost" size="sm" onClick={onCerrar} className="text-blue-600 hover:bg-blue-50">
               <X className="w-4 h-4" />
             </Button>
           </div>
