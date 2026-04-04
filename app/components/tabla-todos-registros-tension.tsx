@@ -58,12 +58,6 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
   const [exportandoGrafico, setExportandoGrafico] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const [datosTension, setDatosTension] = useState<{
-    diario: { fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[] }[];
-    mensual: { mes: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; totalRegistros: number }[];
-  } | null>(null)
-  const printTensionRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     cargarRegistros()
   }, [])
@@ -123,7 +117,7 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
     setPresetFecha(preset)
   }
 
-  const handleExportTensionPDF = async () => {
+  const handleExportTensionPDF = () => {
     if (registrosFiltrados.length === 0) {
       toast.error("No hay registros para exportar")
       return
@@ -213,9 +207,112 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
       }
     })
 
-    setDatosTension({ diario, mensual })
-    setTimeout(() => window.print(), 100)
-    toast.success("Informe de tensión abierto para guardar como PDF")
+    const htmlDiario = diario.map(d => `
+      <div style="margin-bottom: 20px; page-break-inside: avoid;">
+        <div style="background: #e5e7eb; padding: 8px; font-weight: bold; text-align: center;">
+          ${d.fecha} - Promedios: Sistólica ${d.sistolicaPromedio ?? "-"} / Diastólica ${d.diastolicaPromedio ?? "-"} / Pulsaciones ${d.pulsacionesPromedio ?? "-"}
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="background: #fecaca;">
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: left;">Hora</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Sistólica</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Diastólica</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Pulsaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${d.registros.map((r, j) => `
+              <tr style="${j % 2 === 0 ? 'background: #f9fafb;' : ''}">
+                <td style="border: 1px solid #ddd; padding: 4px;">${r.hora}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; text-align: center;">${r.sistolica}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; text-align: center;">${r.diastolica}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; text-align: center;">${r.pulsaciones}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `).join("")
+
+    const htmlMensual = mensual.length > 0 ? `
+      <div style="margin-top: 30px; page-break-inside: avoid;">
+        <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">Resumen Mensual:</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="background: #bfdbfe;">
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Mes</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Sistólica Prom.</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Diastólica Prom.</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Pulsaciones Prom.</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Total Registros</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${mensual.map(m => `
+              <tr style="background: #f9fafb;">
+                <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${m.mes}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.sistolicaPromedio ?? "-"}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.diastolicaPromedio ?? "-"}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.pulsacionesPromedio ?? "-"}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${m.totalRegistros}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    ` : ""
+
+    const contenidoHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Informe de Tensión Arterial</title>
+          <style>
+            @page { margin: 1cm; size: A4; }
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+            .header h1 { margin: 0; font-size: 24px; color: #333; }
+            .header p { margin: 5px 0; color: #666; }
+            .resumen-general { margin-top: 30px; padding: 15px; background: #f3f4f6; border-radius: 8px; }
+            .resumen-general h2 { margin: 0 0 10px 0; font-size: 18px; }
+            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Informe de Tensión Arterial</h1>
+            <p>Fecha de exportación: ${new Date().toLocaleDateString("es-ES")}</p>
+          </div>
+          
+          ${htmlDiario}
+          ${htmlMensual}
+          
+          <div class="resumen-general">
+            <h2>Resumen General:</h2>
+            <p>• Días de registro: ${diario.length}</p>
+            <p>• Total de mediciones: ${diario.reduce((acc, d) => acc + d.registros.length, 0)}</p>
+          </div>
+          
+          <div class="footer">
+            <p>Generado automáticamente el ${new Date().toLocaleString("es-ES")}</p>
+          </div>
+        </body>
+      </html>
+    `
+
+    const ventana = window.open("", "_blank")
+    if (ventana) {
+      ventana.document.write(contenidoHTML)
+      ventana.document.close()
+      ventana.onload = () => {
+        ventana.focus()
+        ventana.print()
+      }
+    } else {
+      toast.error("No se pudo abrir la ventana de impresión")
+    }
   }
 
   const filtrarPorFecha = (registros: RegistroTension[]) => {
@@ -1321,89 +1418,6 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
           </Table>
         </div>
       </CardContent>
-
-      {datosTension && (
-        <div ref={printTensionRef} className="hidden print:block p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold">Informe de Tensión Arterial</h1>
-            <p className="text-gray-600">Fecha de exportación: {new Date().toLocaleDateString("es-ES")}</p>
-          </div>
-          
-          {datosTension.diario.map((d) => (
-            <div key={d.fecha} className="mb-6 break-inside-avoid">
-              <div className="bg-gray-200 p-2 font-bold text-center">
-                {d.fecha} - Promedios: Sistólica {d.sistolicaPromedio ?? "-"} / Diastólica {d.diastolicaPromedio ?? "-"} / Pulsaciones {d.pulsacionesPromedio ?? "-"}
-              </div>
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-red-100">
-                    <th className="border p-1 text-left">Hora</th>
-                    <th className="border p-1">Sistólica</th>
-                    <th className="border p-1">Diastólica</th>
-                    <th className="border p-1">Pulsaciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.registros.map((r, j) => (
-                    <tr key={j} className={j % 2 === 0 ? "bg-gray-50" : ""}>
-                      <td className="border p-1">{r.hora}</td>
-                      <td className="border p-1 text-center">{r.sistolica}</td>
-                      <td className="border p-1 text-center">{r.diastolica}</td>
-                      <td className="border p-1 text-center">{r.pulsaciones}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-          
-          {datosTension.mensual && datosTension.mensual.length > 0 ? (
-            <div className="mt-6 break-inside-avoid">
-              <h2 className="font-bold text-lg mb-2">Resumen Mensual:</h2>
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-blue-100">
-                    <th className="border p-2 text-left">Mes</th>
-                    <th className="border p-2">Sistólica Prom.</th>
-                    <th className="border p-2">Diastólica Prom.</th>
-                    <th className="border p-2">Pulsaciones Prom.</th>
-                    <th className="border p-2">Total Registros</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosTension.mensual.map((m: any) => (
-                    <tr key={m.mes} className="bg-gray-50">
-                      <td className="border p-2 font-medium">{m.mes}</td>
-                      <td className="border p-2 text-center">{m.sistolicaPromedio ?? "-"}</td>
-                      <td className="border p-2 text-center">{m.diastolicaPromedio ?? "-"}</td>
-                      <td className="border p-2 text-center">{m.pulsacionesPromedio ?? "-"}</td>
-                      <td className="border p-2 text-center">{m.totalRegistros}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : datosTension.mensual ? (
-            <div className="mt-6 p-4 bg-yellow-50 rounded border border-yellow-200">
-              <p className="text-yellow-800">No hay datos mensuales disponibles</p>
-            </div>
-          ) : null}
-          
-          <div className="mt-6 p-4 bg-gray-50 rounded">
-            <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
-            <p>• Días de registro: {datosTension.diario.length}</p>
-            <p>• Total de mediciones: {datosTension.diario.reduce((acc: number, d: any) => acc + d.registros.length, 0)}</p>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .print\\:block, .print\\:block * { visibility: visible; }
-          .print\\:block { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
     </Card>
   )
 }
