@@ -172,7 +172,48 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
       }
     })
 
-    setDatosTension({ diario, mensual: [] })
+    const datosAgrupadosPorMes: Record<string, {
+      sistolica: number[];
+      diastolica: number[];
+      pulsaciones: number[];
+      totalRegistros: number;
+    }> = {}
+
+    registrosFiltrados.forEach(reg => {
+      const [, mes, anio] = reg.fecha.split("/")
+      const key = `${mes}/${anio}`
+      if (!datosAgrupadosPorMes[key]) {
+        datosAgrupadosPorMes[key] = { sistolica: [], diastolica: [], pulsaciones: [], totalRegistros: 0 }
+      }
+      datosAgrupadosPorMes[key].sistolica.push(reg.sistolica)
+      datosAgrupadosPorMes[key].diastolica.push(reg.diastolica)
+      datosAgrupadosPorMes[key].pulsaciones.push(reg.pulsaciones)
+      datosAgrupadosPorMes[key].totalRegistros++
+    })
+
+    const mesesOrdenados = Object.keys(datosAgrupadosPorMes).sort((a, b) => {
+      const [mesA, anioA] = a.split("/")
+      const [mesB, anioB] = b.split("/")
+      const fechaA = new Date(`${anioA}-${mesA}-01`)
+      const fechaB = new Date(`${anioB}-${mesB}-01`)
+      return fechaA.getTime() - fechaB.getTime()
+    })
+
+    const mensual = mesesOrdenados.map(mes => {
+      const datos = datosAgrupadosPorMes[mes]
+      const calcularPromedio = (arr: number[]) => 
+        arr.length > 0 ? Math.round(arr.reduce((x, y) => x + y, 0) / arr.length) : null
+
+      return {
+        mes,
+        sistolicaPromedio: calcularPromedio(datos.sistolica),
+        diastolicaPromedio: calcularPromedio(datos.diastolica),
+        pulsacionesPromedio: calcularPromedio(datos.pulsaciones),
+        totalRegistros: datos.totalRegistros
+      }
+    })
+
+    setDatosTension({ diario, mensual })
     setTimeout(() => window.print(), 100)
     toast.success("Informe de tensión abierto para guardar como PDF")
   }
