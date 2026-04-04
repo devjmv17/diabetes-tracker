@@ -67,7 +67,7 @@ export default async function Home() {
       {estadisticas.totalRegistros > 0 && (
         <div className="mb-6 flex flex-col md:flex-row gap-4">
           <ExportButton />
-          <ExportResumenButton />
+          {/* <ExportResumenButton /> */}
           <BotonTablaRegistros />
         </div>
       )}
