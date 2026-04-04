@@ -4,6 +4,8 @@ import { obtenerTodosLosRegistrosTension } from "../../lib/database"
 export async function GET() {
   try {
     const registros = await obtenerTodosLosRegistrosTension()
+    console.log("Registros obtenidos:", registros.length)
+    console.log("Sample registro:", registros[0])
 
     if (registros.length === 0) {
       return NextResponse.json({ error: "No hay registros de tensión" }, { status: 404 })
@@ -39,7 +41,9 @@ export async function GET() {
       })
 
       const fechaObj = new Date(reg.timestamp * 1000)
+      console.log("Timestamp:", reg.timestamp, "Date:", fechaObj.toISOString())
       const mesKey = `${fechaObj.getFullYear()}-${String(fechaObj.getMonth() + 1).padStart(2, '0')}`
+      console.log("Mes key:", mesKey)
       
       if (!datosPorMes[mesKey]) {
         datosPorMes[mesKey] = { sistolica: [], diastolica: [], pulsaciones: [] }
@@ -59,6 +63,8 @@ export async function GET() {
     })
 
     const mesesOrdenados = Object.keys(datosPorMes).sort()
+    console.log("Meses ordenados:", mesesOrdenados)
+    console.log("Datos por mes:", datosPorMes)
 
     const nombreMes = (mes: string) => {
       const [anio, m] = mes.split("-")

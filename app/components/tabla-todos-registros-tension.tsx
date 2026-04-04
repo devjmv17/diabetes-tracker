@@ -58,7 +58,6 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
   const [exportandoGrafico, setExportandoGrafico] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const [loadingExport, setLoadingExport] = useState(false)
   const [datosTension, setDatosTension] = useState<{
     diario: { fecha: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; registros: { hora: string; sistolica: number; diastolica: number; pulsaciones: number }[] }[];
     mensual: { mes: string; sistolicaPromedio: number | null; diastolicaPromedio: number | null; pulsacionesPromedio: number | null; totalRegistros: number }[];
@@ -125,25 +124,57 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
   }
 
   const handleExportTensionPDF = async () => {
-    setLoadingExport(true)
-    try {
-      const response = await fetch("/api/export-tension-json")
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Error al exportar")
-      }
-      const data = await response.json()
-      if (!data.diario || data.diario.length === 0) throw new Error("No hay registros de tensión")
-      
-      setDatosTension({ diario: data.diario, mensual: data.mensual || [] })
-      setTimeout(() => window.print(), 100)
-      toast.success("Informe de tensión abierto para guardar como PDF")
-    } catch (error) {
-      console.error("Error al exportar:", error)
-      toast.error("Error al exportar el informe de tensión")
-    } finally {
-      setLoadingExport(false)
+    if (registrosFiltrados.length === 0) {
+      toast.error("No hay registros para exportar")
+      return
     }
+
+    const datosAgrupadosPorFecha: Record<string, {
+      sistolica: number[];
+      diastolica: number[];
+      pulsaciones: number[];
+      horas: string[];
+    }> = {}
+
+    registrosFiltrados.forEach(reg => {
+      const fecha = reg.fecha
+      if (!datosAgrupadosPorFecha[fecha]) {
+        datosAgrupadosPorFecha[fecha] = { sistolica: [], diastolica: [], pulsaciones: [], horas: [] }
+      }
+      datosAgrupadosPorFecha[fecha].sistolica.push(reg.sistolica)
+      datosAgrupadosPorFecha[fecha].diastolica.push(reg.diastolica)
+      datosAgrupadosPorFecha[fecha].pulsaciones.push(reg.pulsaciones)
+      datosAgrupadosPorFecha[fecha].horas.push(reg.hora)
+    })
+
+    const fechasOrdenadas = Object.keys(datosAgrupadosPorFecha).sort((a, b) => {
+      const [diaA, mesA, anioA] = a.split("/")
+      const [diaB, mesB, anioB] = b.split("/")
+      return new Date(`${anioA}-${mesA}-${diaA}`).getTime() - new Date(`${anioB}-${mesB}-${diaB}`).getTime()
+    })
+
+    const diario = fechasOrdenadas.map(fecha => {
+      const datos = datosAgrupadosPorFecha[fecha]
+      const calcularPromedio = (arr: number[]) => 
+        arr.length > 0 ? Math.round(arr.reduce((x, y) => x + y, 0) / arr.length) : null
+
+      return {
+        fecha,
+        sistolicaPromedio: calcularPromedio(datos.sistolica),
+        diastolicaPromedio: calcularPromedio(datos.diastolica),
+        pulsacionesPromedio: calcularPromedio(datos.pulsaciones),
+        registros: datos.sistolica.map((_, i) => ({
+          hora: datos.horas[i],
+          sistolica: datos.sistolica[i],
+          diastolica: datos.diastolica[i],
+          pulsaciones: datos.pulsaciones[i],
+        }))
+      }
+    })
+
+    setDatosTension({ diario, mensual: [] })
+    setTimeout(() => window.print(), 100)
+    toast.success("Informe de tensión abierto para guardar como PDF")
   }
 
   const filtrarPorFecha = (registros: RegistroTension[]) => {
@@ -929,8 +960,8 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
                   <Printer className="w-4 h-4" />
                   Imprimir
                 </Button>
-                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent" onClick={handleExportTensionPDF} disabled={loadingExport}>
-                  {loadingExport ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent" onClick={handleExportTensionPDF}>
+                  <FileText className="w-4 h-4" />
                   Exportar PDF
                 </Button>
               </>
@@ -1285,7 +1316,7 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
             </div>
           ))}
           
-          {datosTension.mensual && datosTension.mensual.length > 0 && (
+          {datosTension.mensual && datosTension.mensual.length > 0 ? (
             <div className="mt-6 break-inside-avoid">
               <h2 className="font-bold text-lg mb-2">Resumen Mensual:</h2>
               <table className="w-full border-collapse text-sm">
@@ -1311,7 +1342,11 @@ export default function TablaTodosRegistrosTension({ onCerrar }: TablaTodosRegis
                 </tbody>
               </table>
             </div>
-          )}
+          ) : datosTension.mensual ? (
+            <div className="mt-6 p-4 bg-yellow-50 rounded border border-yellow-200">
+              <p className="text-yellow-800">No hay datos mensuales disponibles</p>
+            </div>
+          ) : null}
           
           <div className="mt-6 p-4 bg-gray-50 rounded">
             <h2 className="font-bold text-lg mb-2">Resumen General:</h2>
